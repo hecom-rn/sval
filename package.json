@@ -36,12 +36,14 @@
   "devDependencies": {
     "@types/acorn": "^4.0.5",
     "@types/estree": "0.0.39",
-    "@types/jest": "^24.9.1",
+    "@types/jest": "^26",
+    "jest": "^26",
     "rollup": "^1.32.1",
     "rollup-plugin-json": "^3.1.0",
     "rollup-plugin-node-resolve": "^4.2.4",
     "rollup-plugin-typescript2": "^0.21.2",
     "rollup-plugin-uglify": "^6.0.4",
+    "ts-jest": "^26",
     "typescript": "^3.8.3",
     "umi-test": "^1.9.6"
   }

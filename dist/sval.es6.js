@@ -434,6 +434,8 @@
   class Scope {
       constructor(parent = null, isolated = false) {
           this.context = create(null);
+          this.operator = create(null);
+          this.nullSafe = false;
           this.parent = parent;
           this.isolated = isolated;
       }
@@ -451,6 +453,23 @@
               cloneScope[variable.kind](name, variable.get());
           }
           return cloneScope;
+      }
+      addOperator(operator, handle) {
+          const handleFunc = this.operator[operator];
+          if (!handleFunc) {
+              this.operator[operator] = handle;
+          }
+          else {
+              throw new SyntaxError(`Operator '${operator}' has already been overloaded`);
+          }
+      }
+      findOperator(operator) {
+          if (this.operator[operator]) {
+              return this.operator[operator];
+          }
+          else if (this.parent) {
+              return this.parent.findOperator(operator);
+          }
       }
       find(name) {
           if (this.context[name]) {
@@ -706,6 +725,10 @@
   function BinaryExpression(node, scope) {
       const left = evaluate(node.left, scope);
       const right = evaluate(node.right, scope);
+      const handle = scope.findOperator(node.operator);
+      if (handle) {
+          return handle(left, right, node, scope);
+      }
       switch (node.operator) {
           case '==': return left == right;
           case '!=': return left != right;
@@ -839,6 +862,9 @@
               return getter.call(thisObject);
           }
           else {
+              if (scope.nullSafe && (object === null || object === undefined)) {
+                  return object;
+              }
               return object[key];
           }
       }
@@ -1706,6 +1732,10 @@
   function* BinaryExpression$1(node, scope) {
       const left = yield* evaluate$1(node.left, scope);
       const right = yield* evaluate$1(node.right, scope);
+      const handle = scope.findOperator(node.operator);
+      if (handle) {
+          return handle(left, right, node, scope);
+      }
       switch (node.operator) {
           case '==': return left == right;
           case '!=': return left != right;
@@ -1839,6 +1869,9 @@
               return getter.call(thisObject);
           }
           else {
+              if (scope.nullSafe && (object === null || object === undefined)) {
+                  return object;
+              }
               return object[key];
           }
       }
@@ -3042,7 +3075,7 @@
           this.options = {};
           this.scope = new Scope(null, true);
           this.exports = {};
-          let { ecmaVer = 9, sandBox = true } = options;
+          let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe = false } = options;
           ecmaVer -= ecmaVer < 2015 ? 0 : 2009;
           if ([3, 5, 6, 7, 8, 9, 10].indexOf(ecmaVer) === -1) {
               throw new Error(`unsupported ecmaVer`);
@@ -3058,6 +3091,8 @@
               this.scope.let('this', globalObj);
           }
           this.scope.const('exports', this.exports = {});
+          operatorHandle.forEach(item => this.scope.addOperator(item.name, item.handle));
+          this.scope.nullSafe = nullSafe;
       }
       import(nameOrModules, mod) {
           if (typeof nameOrModules === 'string') {

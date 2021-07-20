@@ -439,6 +439,8 @@
           if (parent === void 0) { parent = null; }
           if (isolated === void 0) { isolated = false; }
           this.context = create(null);
+          this.operator = create(null);
+          this.nullSafe = false;
           this.parent = parent;
           this.isolated = isolated;
       }
@@ -456,6 +458,23 @@
               cloneScope[variable.kind](name_1, variable.get());
           }
           return cloneScope;
+      };
+      Scope.prototype.addOperator = function (operator, handle) {
+          var handleFunc = this.operator[operator];
+          if (!handleFunc) {
+              this.operator[operator] = handle;
+          }
+          else {
+              throw new SyntaxError("Operator '" + operator + "' has already been overloaded");
+          }
+      };
+      Scope.prototype.findOperator = function (operator) {
+          if (this.operator[operator]) {
+              return this.operator[operator];
+          }
+          else if (this.parent) {
+              return this.parent.findOperator(operator);
+          }
       };
       Scope.prototype.find = function (name) {
           if (this.context[name]) {
@@ -790,6 +809,10 @@
   function BinaryExpression(node, scope) {
       var left = evaluate(node.left, scope);
       var right = evaluate(node.right, scope);
+      var handle = scope.findOperator(node.operator);
+      if (handle) {
+          return handle(left, right, node, scope);
+      }
       switch (node.operator) {
           case '==': return left == right;
           case '!=': return left != right;
@@ -924,6 +947,9 @@
               return getter.call(thisObject);
           }
           else {
+              if (scope.nullSafe && (object === null || object === undefined)) {
+                  return object;
+              }
               return object[key];
           }
       }
@@ -1889,7 +1915,7 @@
       });
   }
   function BinaryExpression$1(node, scope) {
-      var left, right;
+      var left, right, handle;
       return __generator(this, function (_a) {
           switch (_a.label) {
               case 0: return [5, __values(evaluate$1(node.left, scope))];
@@ -1898,6 +1924,10 @@
                   return [5, __values(evaluate$1(node.right, scope))];
               case 2:
                   right = _a.sent();
+                  handle = scope.findOperator(node.operator);
+                  if (handle) {
+                      return [2, handle(left, right, node, scope)];
+                  }
                   switch (node.operator) {
                       case '==': return [2, left == right];
                       case '!=': return [2, left != right];
@@ -2077,6 +2107,9 @@
                           return [2, getter.call(thisObject)];
                       }
                       else {
+                          if (scope.nullSafe && (object === null || object === undefined)) {
+                              return [2, object];
+                          }
                           return [2, object[key]];
                       }
                   }
@@ -3964,11 +3997,12 @@
 
   var Sval = (function () {
       function Sval(options) {
+          var _this = this;
           if (options === void 0) { options = {}; }
           this.options = {};
           this.scope = new Scope(null, true);
           this.exports = {};
-          var _a = options.ecmaVer, ecmaVer = _a === void 0 ? 9 : _a, _b = options.sandBox, sandBox = _b === void 0 ? true : _b;
+          var _a = options.ecmaVer, ecmaVer = _a === void 0 ? 9 : _a, _b = options.sandBox, sandBox = _b === void 0 ? true : _b, _c = options.operatorHandle, operatorHandle = _c === void 0 ? [] : _c, _d = options.nullSafe, nullSafe = _d === void 0 ? false : _d;
           ecmaVer -= ecmaVer < 2015 ? 0 : 2009;
           if ([3, 5, 6, 7, 8, 9, 10].indexOf(ecmaVer) === -1) {
               throw new Error("unsupported ecmaVer");
@@ -3984,6 +4018,8 @@
               this.scope.let('this', globalObj);
           }
           this.scope.const('exports', this.exports = {});
+          operatorHandle.forEach(function (item) { return _this.scope.addOperator(item.name, item.handle); });
+          this.scope.nullSafe = nullSafe;
       }
       Sval.prototype.import = function (nameOrModules, mod) {
           var _a;

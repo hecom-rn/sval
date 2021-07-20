@@ -2,6 +2,10 @@ import { NOINIT, DEADZONE } from '../share/const'
 import { Variable, Var, Prop } from './variable'
 import { create, define } from '../share/util'
 
+export interface OperatorHandle {
+    (...args:any[]):any
+}
+
 /**
  * Scope simulation class
  */
@@ -26,6 +30,14 @@ export default class Scope {
    * @readonly
    */
   private readonly context: { [key: string]: Var } = create(null)
+
+    /**
+     * Operator overload object
+     * @private
+     */
+  private readonly operator: {[operator:string]: OperatorHandle} = create(null)
+
+  public nullSafe: boolean = false
 
   /**
    * Create a simulated scope
@@ -61,6 +73,23 @@ export default class Scope {
       cloneScope[variable.kind](name, variable.get())
     }
     return cloneScope
+  }
+
+  addOperator(operator:string, handle: OperatorHandle){
+      const handleFunc = this.operator[operator]
+      if (!handleFunc) {
+          this.operator[operator] = handle;
+      } else {
+          throw new SyntaxError(`Operator '${operator}' has already been overloaded`)
+      }
+  }
+
+  findOperator(operator: string): OperatorHandle{
+      if (this.operator[operator]){
+          return this.operator[operator];
+      } else if (this.parent) {
+          return this.parent.findOperator(operator);
+      }
   }
 
   /**

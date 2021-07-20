@@ -1,18 +1,95 @@
 import Sval from '../src'
 
 describe('testing src/expression.ts', () => {
-  it('should call expression run normally', () => {  
+  it('1234', () => {
+    const interpreter = new Sval()
+    const bizData: any = {
+      field2: {
+        field3: {
+          toString () {
+            return '测试名称'
+          },
+          valueOf () {
+            return 123
+          }
+        }, field1: {
+          toString () {
+            return '测试名称'
+          },
+          valueOf () {
+            return 123
+          }
+        }
+      }, field3: '测试名称', field1: 123
+    }
+
+    interpreter.import({bizData})
+    interpreter.run(`
+            exports.a = bizData.field3 == bizData.field2.field3;
+            exports.b = bizData.field1 == bizData.field2.field1;
+        `)
+
+    expect(interpreter.exports.a).toBeTruthy();
+    expect(interpreter.exports.b).toBeTruthy();
+  });
+
+  it('operator overload: +', () => {
+    const interpreter = new Sval({
+      nullSafe: true, operatorHandle: [{
+        name: '+', handle (left, right) {
+          if (typeof left !== 'number' && typeof right !== 'number') {
+            if (left === null || left === undefined) {
+              left = ''
+            }
+            if (right === null || right === undefined) {
+              right = ''
+            }
+          }
+          return left + right
+        }
+      }]
+    })
+
+    const bizData: any = {field2: {field3: 3, field1:null}, field3: '123', field1: undefined}
+
+    interpreter.import({bizData})
+    interpreter.run(`
+      exports.a = bizData.field1 + bizData.field3 + bizData.field2.field3
+      exports.b = bizData.field3 + bizData.field2.field1
+    `)
+
+    expect(interpreter.exports.a).toBe('1233')
+    expect(interpreter.exports.b).toBe('123')
+  })
+
+  it('null safe', () => {
+    const interpreter = new Sval({nullSafe: true})
+
+    const bizData: any = {field3: '123', field1: null}
+
+    interpreter.import({bizData})
+    interpreter.run(`
+      exports.a = bizData.field2.field3
+      exports.b = bizData.field1.field3
+    `)
+
+    expect(interpreter.exports.a).toBe(undefined)
+    expect(interpreter.exports.b).toBe(null)
+  })
+
+  it('should call expression run normally', () => {
     const interpreter = new Sval()
 
     class A {
       a = 1
-      then() {
+
+      then () {
         this.a++
         return this
       }
     }
 
-    interpreter.import({ A })
+    interpreter.import({A})
     interpreter.run('exports.inst = new A().then()')
 
     expect(interpreter.exports.inst.a).toBe(2)
@@ -28,7 +105,7 @@ describe('testing src/expression.ts', () => {
       exports.e = delete exports.d
       exports.f = typeof exports.e
     `
-    interpreter.run(`!async function(){${code}}()`) // also test for generator env
+    interpreter.run(`!async function(){${ code }}()`) // also test for generator env
     interpreter.run(code)
 
     expect(interpreter.exports.a).toBeTruthy()
@@ -72,7 +149,7 @@ describe('testing src/expression.ts', () => {
       const c = new b
       exports.v = c instanceof b
     `
-    interpreter.run(`!async function(){${code}}()`) // also test for generator env
+    interpreter.run(`!async function(){${ code }}()`) // also test for generator env
     interpreter.run(code)
     // comparison
     expect(interpreter.exports.a).toBeTruthy()
@@ -131,12 +208,12 @@ describe('testing src/expression.ts', () => {
       exports.a ^= 1
       expect(exports.a).toBe(0)
     `
-    interpreter.import({ expect })
-    interpreter.run(`!async function(){${code}}()`) // also test for generator env
+    interpreter.import({expect})
+    interpreter.run(`!async function(){${ code }}()`) // also test for generator env
     interpreter.run(code)
   })
 
-  it ('should throw TypeError when assigning to constant', () => {
+  it('should throw TypeError when assigning to constant', () => {
     const interpreter = new Sval()
     let error = null
     try {
@@ -171,9 +248,9 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.c).toBe(1)
     expect(interpreter.exports.d).toBe(2)
   })
-  it('should parse regular expression normally', () => {  
+  it('should parse regular expression normally', () => {
     const interpreter = new Sval()
-    interpreter.import({ expect })
+    interpreter.import({expect})
     interpreter.run(`
       const re = /\\/\\*<([^>]+?)>\\*\\/([\\s\\S]*?)\\/\\*<\\/([^>]+?)>\\*\\//g
       exports.a = '/*<add>*//*hello*//*</add>*/ /*<add>*//*world*//*</add>*/'
@@ -186,9 +263,9 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.a).toBe('hello world')
   })
 
-  it('should support object expression', () => {  
+  it('should support object expression', () => {
     const interpreter = new Sval()
-    interpreter.import({ expect })
+    interpreter.import({expect})
     interpreter.run(`
       const name = 'y'
       const values = { a: 1, b: 2 }
@@ -223,10 +300,10 @@ describe('testing src/expression.ts', () => {
 
     const b = {
       _t: 1,
-      get t() {
+      get t () {
         return this._t
       },
-      set t(v) {
+      set t (v) {
         this._t = v
       }
     }
@@ -236,7 +313,7 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.b).toEqual(b)
   })
 
-  it('should support object expression with correct property descriptor', () => {  
+  it('should support object expression with correct property descriptor', () => {
     const interpreter = new Sval()
     interpreter.run(`
       const a = {
@@ -262,7 +339,7 @@ describe('testing src/expression.ts', () => {
       value: 5,
       writable: true
     })
-    
+
     const yPD = Object.getOwnPropertyDescriptor(a, 'y')
     expect({
       configurable: yPD.configurable,
@@ -273,9 +350,9 @@ describe('testing src/expression.ts', () => {
     })
   })
 
-  it('should support logic expression', () => {  
+  it('should support logic expression', () => {
     const interpreter = new Sval()
-    interpreter.import({ expect })
+    interpreter.import({expect})
     interpreter.run(`
       const x = 0
       const y = true
@@ -285,7 +362,7 @@ describe('testing src/expression.ts', () => {
     `)
   })
 
-  it('should support method call with super + getter', () => {  
+  it('should support method call with super + getter', () => {
     const interpreter = new Sval()
     interpreter.run(`
       class X {
@@ -306,7 +383,7 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.result).toEqual(1);
   })
 
-  it('should support method call with computed name', () => {  
+  it('should support method call with computed name', () => {
     const interpreter = new Sval()
     interpreter.run(`
       var x = {
@@ -321,7 +398,7 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.result).toEqual(1);
   })
 
-  it('should support method call with computed name', () => {  
+  it('should support method call with computed name', () => {
     const interpreter = new Sval()
     interpreter.run(`
       exports.result = 1+!!2
@@ -330,7 +407,7 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.result).toEqual(2);
   })
 
-  it('should support all kinds of delete actions', () => {  
+  it('should support all kinds of delete actions', () => {
     const interpreter = new Sval()
     interpreter.run(`
       var x = {}

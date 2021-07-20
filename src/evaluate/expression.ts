@@ -49,9 +49,9 @@ export function* ObjectExpression(node: estree.ObjectExpression, scope: Scope) {
           key = '' + (yield* Literal(propKey as estree.Literal, scope))
         }
       }
-  
+
       const value = yield* evaluate(property.value, scope)
-  
+
       const propKind = property.kind
       if (propKind === 'init') {
         object[key] = value
@@ -121,7 +121,7 @@ export function* UnaryExpression(node: estree.UnaryExpression, scope: Scope) {
 
 export function* UpdateExpression(node: estree.UpdateExpression, scope: Scope) {
   const arg = node.argument
-  
+
   let variable: Variable
   if (arg.type === 'Identifier') {
     variable = yield* Identifier(arg, scope, { getVar: true })
@@ -148,7 +148,10 @@ export function* UpdateExpression(node: estree.UpdateExpression, scope: Scope) {
 export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
   const left = yield* evaluate(node.left, scope)
   const right = yield* evaluate(node.right, scope)
-
+  const handle = scope.findOperator(node.operator)
+  if (handle) {
+      return handle(left, right, node, scope)
+  }
   switch (node.operator) {
     case '==': return left == right
     case '!=': return left != right
@@ -273,6 +276,9 @@ export function* MemberExpression(
       const thisObject = scope.find('this').get()
       return getter.call(thisObject)
     } else {
+      if (scope.nullSafe && (object === null || object === undefined)){
+        return object
+      }
       return object[key]
     }
   }
@@ -290,7 +296,7 @@ export function* CallExpression(node: estree.CallExpression, scope: Scope) {
 
   if (node.callee.type === 'MemberExpression') {
     object = yield* MemberExpression(node.callee, scope, { getObj: true })
-  
+
     // get key
     let key: string
     if (node.callee.computed) {

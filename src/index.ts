@@ -2,14 +2,18 @@ import { getOwnNames, createSandBox, globalObj, assign } from './share/util'
 import { version } from '../package.json'
 import { parse, Options } from 'acorn'
 import { Node, Program } from 'estree'
-import Scope from './scope'
+import Scope, { OperatorHandle } from './scope'
 
 import { hoist } from './evaluate_n/helper'
 import evaluate from './evaluate_n'
 
+export { OperatorHandle }
+
 export interface SvalOptions {
   ecmaVer?: 3 | 5 | 6 | 7 | 8 | 9 | 10 | 2015 | 2016 | 2017 | 2018 | 2019
   sandBox?: boolean
+  operatorHandle?: {name: string, handle: OperatorHandle}[]
+  nullSafe?: boolean
 }
 
 class Sval {
@@ -21,7 +25,7 @@ class Sval {
   exports: { [name: string]: any } = {}
 
   constructor(options: SvalOptions = {}) {
-    let { ecmaVer = 9, sandBox = true } = options
+    let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe= false } = options
 
     ecmaVer -= ecmaVer < 2015 ? 0 : 2009 // format ecma edition
 
@@ -40,8 +44,11 @@ class Sval {
       this.scope.let('window', globalObj)
       this.scope.let('this', globalObj)
     }
-    
+
     this.scope.const('exports', this.exports = {})
+
+    operatorHandle.forEach(item => this.scope.addOperator(item.name, item.handle))
+    this.scope.nullSafe = nullSafe
   }
 
   import(nameOrModules: string | { [name: string]: any }, mod?: any) {
@@ -52,7 +59,7 @@ class Sval {
     if (typeof nameOrModules !== 'object') return
 
     const names = getOwnNames(nameOrModules)
-    
+
     for (let i = 0; i < names.length; i++) {
       const name = names[i]
       this.scope.var(name, nameOrModules[name])
