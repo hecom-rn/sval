@@ -12,18 +12,19 @@ if (existsSync(codePath)) {
 }
 
 describe('testing src/index.ts', () => {
-  it('should compile normally', () => {  
+  it('should compile normally', () => {
     const interpreter = new Sval()
     interpreter.run(`!async function(){${code}}()`) // also test for generator env
     interpreter.run(code)
   })
 
-  it('should compile normally in generator env', () => {  
+  it('should compile normally in generator env', () => {
     const interpreter = new Sval()
     interpreter.run(`!async function(){${code}}()`)
   })
 
   it('should support global mode', () => {
+    const window = global
     const interpreter = new Sval({
       sandBox: false
     })
@@ -41,6 +42,7 @@ describe('testing src/index.ts', () => {
   })
 
   it('should support sandbox mode', () => {
+    const window = global
     const interpreter = new Sval({
       sandBox: true
     })
@@ -69,7 +71,7 @@ describe('testing src/index.ts', () => {
     const bar = 'bar'
     const modules = {
       foo: 'foo',
-      bar: function() { return bar } 
+      bar: function() { return bar }
     }
 
     const interpreter = new Sval()

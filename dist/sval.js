@@ -441,6 +441,7 @@
           this.context = create(null);
           this.operator = create(null);
           this.nullSafe = false;
+          this.null2Zero = false;
           this.parent = parent;
           this.isolated = isolated;
       }
@@ -809,6 +810,9 @@
   function BinaryExpression(node, scope) {
       var left = evaluate(node.left, scope);
       var right = evaluate(node.right, scope);
+      var null2Zero = scope.null2Zero;
+      left = null2Zero ? left !== null && left !== void 0 ? left : 0 : left;
+      right = null2Zero ? right !== null && right !== void 0 ? right : 0 : right;
       var handle = scope.findOperator(node.operator);
       if (handle) {
           return handle(left, right, node, scope);
@@ -841,6 +845,7 @@
   }
   function AssignmentExpression(node, scope) {
       var value = evaluate(node.right, scope);
+      value = scope.null2Zero ? value !== null && value !== void 0 ? value : 0 : value;
       var left = node.left;
       var variable;
       if (left.type === 'Identifier') {
@@ -1915,7 +1920,7 @@
       });
   }
   function BinaryExpression$1(node, scope) {
-      var left, right, handle;
+      var left, right, null2Zero, handle;
       return __generator(this, function (_a) {
           switch (_a.label) {
               case 0: return [5, __values(evaluate$1(node.left, scope))];
@@ -1924,6 +1929,9 @@
                   return [5, __values(evaluate$1(node.right, scope))];
               case 2:
                   right = _a.sent();
+                  null2Zero = scope.null2Zero;
+                  left = null2Zero ? left !== null && left !== void 0 ? left : 0 : left;
+                  right = null2Zero ? right !== null && right !== void 0 ? right : 0 : right;
                   handle = scope.findOperator(node.operator);
                   if (handle) {
                       return [2, handle(left, right, node, scope)];
@@ -1963,6 +1971,7 @@
               case 0: return [5, __values(evaluate$1(node.right, scope))];
               case 1:
                   value = _a.sent();
+                  value = scope.null2Zero ? value !== null && value !== void 0 ? value : 0 : value;
                   left = node.left;
                   if (!(left.type === 'Identifier')) return [3, 3];
                   return [5, __values(Identifier$1(left, scope, { getVar: true, throwErr: false }))];
@@ -4040,7 +4049,9 @@
           }
           return acorn.parse(code, this.options);
       };
-      Sval.prototype.run = function (code) {
+      Sval.prototype.run = function (code, _a) {
+          var _b = (_a === void 0 ? {} : _a).null2Zero, null2Zero = _b === void 0 ? false : _b;
+          this.scope.null2Zero = null2Zero;
           var ast = typeof code === 'string' ? acorn.parse(code, this.options) : code;
           hoist$1(ast, this.scope);
           evaluate(ast, this.scope);

@@ -1,38 +1,6 @@
 import Sval from '../src'
 
 describe('testing src/expression.ts', () => {
-  it('1234', () => {
-    const interpreter = new Sval()
-    const bizData: any = {
-      field2: {
-        field3: {
-          toString () {
-            return '测试名称'
-          },
-          valueOf () {
-            return 123
-          }
-        }, field1: {
-          toString () {
-            return '测试名称'
-          },
-          valueOf () {
-            return 123
-          }
-        }
-      }, field3: '测试名称', field1: 123
-    }
-
-    interpreter.import({bizData})
-    interpreter.run(`
-            exports.a = bizData.field3 == bizData.field2.field3;
-            exports.b = bizData.field1 == bizData.field2.field1;
-        `)
-
-    expect(interpreter.exports.a).toBeTruthy();
-    expect(interpreter.exports.b).toBeTruthy();
-  });
-
   it('operator overload: +', () => {
     const interpreter = new Sval({
       nullSafe: true, operatorHandle: [{
@@ -75,6 +43,30 @@ describe('testing src/expression.ts', () => {
 
     expect(interpreter.exports.a).toBe(undefined)
     expect(interpreter.exports.b).toBe(null)
+  })
+
+  it('null2Zero', () => {
+      const interpreter = new Sval({nullSafe: true})
+
+      const bizData: any = {field3: {}, field1: null}
+
+      interpreter.import({bizData})
+      interpreter.run(`
+      exports.a = bizData.field3.field3 + 5
+      exports.b = bizData.field1.field3 + 5
+      exports.c = bizData.field2
+    `, { null2Zero: true})
+
+      expect(interpreter.exports.a).toBe(5)
+      expect(interpreter.exports.b).toBe(5)
+      expect(interpreter.exports.c).toBe(0)
+      interpreter.run(`
+      exports.a = bizData.field3.field3 + 5
+      exports.c = bizData.field2
+    `)
+
+      expect(interpreter.exports.a).toBeNaN()
+      expect(interpreter.exports.c).toBe(undefined)
   })
 
   it('should call expression run normally', () => {

@@ -146,8 +146,11 @@ export function* UpdateExpression(node: estree.UpdateExpression, scope: Scope) {
 }
 
 export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
-  const left = yield* evaluate(node.left, scope)
-  const right = yield* evaluate(node.right, scope)
+  let left = yield* evaluate(node.left, scope)
+  let right = yield* evaluate(node.right, scope)
+  const null2Zero = scope.null2Zero
+  left = null2Zero ? left ?? 0 : left
+  right = null2Zero ? right ?? 0 : right
   const handle = scope.findOperator(node.operator)
   if (handle) {
       return handle(left, right, node, scope)
@@ -181,8 +184,8 @@ export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
 }
 
 export function* AssignmentExpression(node: estree.AssignmentExpression, scope: Scope) {
-  const value = yield* evaluate(node.right, scope)
-
+  let value = yield* evaluate(node.right, scope)
+  value = scope.null2Zero ? value ?? 0 : value
   const left = node.left
 
   let variable: Variable

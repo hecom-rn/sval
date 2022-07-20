@@ -73,7 +73,8 @@ class Sval {
     return parse(code, this.options)
   }
 
-  run(code: string | Node) {
+  run(code: string | Node, { null2Zero = false } = {}) {
+    this.scope.null2Zero = null2Zero
     const ast = typeof code === 'string' ? parse(code, this.options) as Node : code
     hoist(ast as Program, this.scope)
     evaluate(ast, this.scope)

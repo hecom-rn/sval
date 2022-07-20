@@ -436,6 +436,7 @@
           this.context = create(null);
           this.operator = create(null);
           this.nullSafe = false;
+          this.null2Zero = false;
           this.parent = parent;
           this.isolated = isolated;
       }
@@ -723,8 +724,11 @@
       }
   }
   function BinaryExpression(node, scope) {
-      const left = evaluate(node.left, scope);
-      const right = evaluate(node.right, scope);
+      let left = evaluate(node.left, scope);
+      let right = evaluate(node.right, scope);
+      const null2Zero = scope.null2Zero;
+      left = null2Zero ? left !== null && left !== void 0 ? left : 0 : left;
+      right = null2Zero ? right !== null && right !== void 0 ? right : 0 : right;
       const handle = scope.findOperator(node.operator);
       if (handle) {
           return handle(left, right, node, scope);
@@ -756,7 +760,8 @@
       }
   }
   function AssignmentExpression(node, scope) {
-      const value = evaluate(node.right, scope);
+      let value = evaluate(node.right, scope);
+      value = scope.null2Zero ? value !== null && value !== void 0 ? value : 0 : value;
       const left = node.left;
       let variable;
       if (left.type === 'Identifier') {
@@ -1730,8 +1735,11 @@
       }
   }
   function* BinaryExpression$1(node, scope) {
-      const left = yield* evaluate$1(node.left, scope);
-      const right = yield* evaluate$1(node.right, scope);
+      let left = yield* evaluate$1(node.left, scope);
+      let right = yield* evaluate$1(node.right, scope);
+      const null2Zero = scope.null2Zero;
+      left = null2Zero ? left !== null && left !== void 0 ? left : 0 : left;
+      right = null2Zero ? right !== null && right !== void 0 ? right : 0 : right;
       const handle = scope.findOperator(node.operator);
       if (handle) {
           return handle(left, right, node, scope);
@@ -1763,7 +1771,8 @@
       }
   }
   function* AssignmentExpression$1(node, scope) {
-      const value = yield* evaluate$1(node.right, scope);
+      let value = yield* evaluate$1(node.right, scope);
+      value = scope.null2Zero ? value !== null && value !== void 0 ? value : 0 : value;
       const left = node.left;
       let variable;
       if (left.type === 'Identifier') {
@@ -3112,7 +3121,8 @@
           }
           return acorn.parse(code, this.options);
       }
-      run(code) {
+      run(code, { null2Zero = false } = {}) {
+          this.scope.null2Zero = null2Zero;
           const ast = typeof code === 'string' ? acorn.parse(code, this.options) : code;
           hoist$1(ast, this.scope);
           evaluate(ast, this.scope);

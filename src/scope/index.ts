@@ -39,6 +39,8 @@ export default class Scope {
 
   public nullSafe: boolean = false
 
+  public null2Zero: boolean = false
+
   /**
    * Create a simulated scope
    * @param parent the parent scope along the scope chain (default: null)
