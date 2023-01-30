@@ -1,7 +1,7 @@
-import { define, freeze, getGetter, getSetter, createSymbol, assign, getDptor, WINDOW } from '../share/util'
-import { SUPER, NOCTOR, AWAIT, CLSCTOR, NEWTARGET, SUPERCALL } from '../share/const'
-import { pattern, createFunc, createClass } from './helper'
-import { Variable, Prop } from '../scope/variable'
+import { assign, createSymbol, define, freeze, getDptor, getGetter, getSetter, WINDOW } from '../share/util'
+import { AWAIT, CLSCTOR, NEWTARGET, NOCTOR, SUPER, SUPERCALL } from '../share/const'
+import { createClass, createFunc, FunctionArgType, needNull2Zero, pattern } from './helper'
+import { Prop, Variable } from '../scope/variable'
 import { Identifier } from './identifier'
 import { Literal } from './literal'
 import * as estree from 'estree'
@@ -148,12 +148,19 @@ export function* UpdateExpression(node: estree.UpdateExpression, scope: Scope) {
 export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
   let left = yield* evaluate(node.left, scope)
   let right = yield* evaluate(node.right, scope)
-  const null2Zero = scope.null2Zero
-  left = null2Zero ? left ?? 0 : left
-  right = null2Zero ? right ?? 0 : right
+  if (scope.null2Zero) {
+    if (needNull2Zero(node.left, scope)) {
+      left = left ?? 0;
+    }
+    if (needNull2Zero(node.right, scope)) {
+      right = right ?? 0;
+    }
+  }
+  left = left === null ? undefined : left;
+  right = right === null ? undefined : right;
   const handle = scope.findOperator(node.operator)
   if (handle) {
-      return handle(left, right, node, scope)
+    return handle(left, right, node, scope)
   }
   switch (node.operator) {
     case '==': return left == right
@@ -185,7 +192,10 @@ export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
 
 export function* AssignmentExpression(node: estree.AssignmentExpression, scope: Scope) {
   let value = yield* evaluate(node.right, scope)
-  value = scope.null2Zero ? value ?? 0 : value
+  if (needNull2Zero(node.right, scope)) {
+    value = value ?? 0;
+  }
+  value = value !== value ? null : value;
   const left = node.left
 
   let variable: Variable
@@ -349,7 +359,11 @@ export function* CallExpression(node: estree.CallExpression, scope: Scope) {
     if (arg.type === 'SpreadElement') {
       args = args.concat(yield* SpreadElement(arg, scope))
     } else {
-      args.push(yield* evaluate(arg, scope))
+      let param = yield* evaluate(arg, scope);
+      if (needNull2Zero(arg, scope) && FunctionArgType(func.name, i, scope)) {
+        param = param ?? 0;
+      }
+      args.push(param)
     }
   }
 
@@ -488,7 +502,7 @@ export function* Super(
 ) {
   const { getProto = false } = options
   const superClass = scope.find(SUPER).get()
-  return getProto ? superClass.prototype: superClass
+  return getProto ? superClass.prototype : superClass
 }
 
 export function* SpreadElement(node: estree.SpreadElement, scope: Scope) {

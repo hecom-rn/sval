@@ -6,6 +6,7 @@ import { Identifier } from '../evaluate_n/identifier'
 import { BlockStatement } from './statement'
 import * as estree from 'estree'
 import Scope from '../scope'
+import { TYPE } from "../index";
 import evaluate from '.'
 
 import {
@@ -300,4 +301,26 @@ export function* ForXHandler(
     result = yield* evaluate(node.body, subScope)
   }
   return result
+}
+
+export function needNull2Zero(node: estree.Expression, scope: Scope): boolean {
+  return scope.null2Zero && node.type === 'MemberExpression' && MemberExpressionResultType(node, scope) == TYPE.NUMBER;
+}
+
+export function MemberExpressionResultType(node: estree.MemberExpression, scope: Scope): TYPE {
+  const objectType = scope.objectType;
+  const properties: estree.Identifier[] = [node.property as estree.Identifier];
+  let curNode = node;
+  while (curNode.object.type === 'MemberExpression') {
+    curNode = curNode.object;
+    properties.unshift(curNode.property as estree.Identifier);
+  }
+  return properties.reduce((pre, cur, index) => {
+    return pre && pre[cur.name];
+  }, objectType) as TYPE;
+}
+
+export function FunctionArgType(name: string, argIndex: number, scope: Scope): TYPE {
+  const funcTypeMap = scope.funcTypeMap;
+  return funcTypeMap[name]?.argsType(argIndex) ?? TYPE.ANY;
 }

@@ -9,11 +9,39 @@ import evaluate from './evaluate_n'
 
 export { OperatorHandle }
 
+export enum TYPE {
+  ANY,
+  STRING,
+  NUMBER,
+  BOOLEAN,
+  DATETIME,
+}
+
+export interface FunctionType {
+  name: string;
+  returnType: TYPE;
+  argsType: (index: number) => TYPE;
+}
+
+export interface FunctionTypeMap {
+  [name: string]: FunctionType
+}
+
+export interface ObjectType {
+  [key: string]: TYPE | ObjectType,
+}
+
 export interface SvalOptions {
   ecmaVer?: 3 | 5 | 6 | 7 | 8 | 9 | 10 | 2015 | 2016 | 2017 | 2018 | 2019
   sandBox?: boolean
-  operatorHandle?: {name: string, handle: OperatorHandle}[]
+  operatorHandle?: { name: string, handle: OperatorHandle }[]
   nullSafe?: boolean
+}
+
+export interface RunOption {
+  null2Zero?: boolean;
+  objectType?: ObjectType;
+  funcTypeMap?: FunctionTypeMap;
 }
 
 class Sval {
@@ -25,7 +53,7 @@ class Sval {
   exports: { [name: string]: any } = {}
 
   constructor(options: SvalOptions = {}) {
-    let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe= false } = options
+    let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe = false } = options
 
     ecmaVer -= ecmaVer < 2015 ? 0 : 2009 // format ecma edition
 
@@ -73,8 +101,10 @@ class Sval {
     return parse(code, this.options)
   }
 
-  run(code: string | Node, { null2Zero = false } = {}) {
-    this.scope.null2Zero = null2Zero
+  run(code: string | Node, { null2Zero = false, funcTypeMap, objectType }: RunOption = {}) {
+    this.scope.null2Zero = null2Zero;
+    this.scope.funcTypeMap = funcTypeMap;
+    this.scope.objectType = objectType;
     const ast = typeof code === 'string' ? parse(code, this.options) as Node : code
     hoist(ast as Program, this.scope)
     evaluate(ast, this.scope)

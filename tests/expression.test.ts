@@ -1,10 +1,11 @@
-import Sval from '../src'
+import Sval, { FunctionTypeMap, TYPE } from '../src'
+import funcMap, { FuncTypeMap } from './function';
 
 describe('testing src/expression.ts', () => {
   it('operator overload: +', () => {
     const interpreter = new Sval({
       nullSafe: true, operatorHandle: [{
-        name: '+', handle (left, right) {
+        name: '+', handle(left, right) {
           if (typeof left !== 'number' && typeof right !== 'number') {
             if (left === null || left === undefined) {
               left = ''
@@ -18,9 +19,9 @@ describe('testing src/expression.ts', () => {
       }]
     })
 
-    const bizData: any = {field2: {field3: 3, field1:null}, field3: '123', field1: undefined}
+    const bizData: any = { field2: { field3: 3, field1: null }, field3: '123', field1: undefined }
 
-    interpreter.import({bizData})
+    interpreter.import({ bizData })
     interpreter.run(`
       exports.a = bizData.field1 + bizData.field3 + bizData.field2.field3
       exports.b = bizData.field3 + bizData.field2.field1
@@ -31,11 +32,11 @@ describe('testing src/expression.ts', () => {
   })
 
   it('null safe', () => {
-    const interpreter = new Sval({nullSafe: true})
+    const interpreter = new Sval({ nullSafe: true })
 
-    const bizData: any = {field3: '123', field1: null}
+    const bizData: any = { field3: '123', field1: null }
 
-    interpreter.import({bizData})
+    interpreter.import({ bizData })
     interpreter.run(`
       exports.a = bizData.field2.field3
       exports.b = bizData.field1.field3
@@ -45,28 +46,66 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.b).toBe(null)
   })
 
-  it('null2Zero', () => {
-      const interpreter = new Sval({nullSafe: true})
+  it('null2Zero in BinaryExpression', () => {
+    const interpreter = new Sval({ nullSafe: true })
 
-      const bizData: any = {field3: {}, field1: null}
-
-      interpreter.import({bizData})
-      interpreter.run(`
+    const bizData: any = { field3: {}, field1: null, field2: null };
+    const objectType = {
+      field3: { field3: TYPE.NUMBER },
+      field1: TYPE.NUMBER,
+      field2: TYPE.STRING,
+    };
+    interpreter.import({ bizData });
+    interpreter.run(`
       exports.a = bizData.field3.field3 + 5
-      exports.b = bizData.field1.field3 + 5
-      exports.c = bizData.field2
-    `, { null2Zero: true})
+      exports.b = bizData.field1 + 5
+      exports.c = bizData.field1
+      exports.d = bizData.field2 + 5
+    `, { null2Zero: true, objectType });
+    expect(interpreter.exports.a).toEqual(5);
+    expect(interpreter.exports.b).toEqual(5);
+    expect(interpreter.exports.c).toEqual(0);
+    expect(interpreter.exports.d).toEqual(null);
 
-      expect(interpreter.exports.a).toBe(5)
-      expect(interpreter.exports.b).toBe(5)
-      expect(interpreter.exports.c).toBe(0)
-      interpreter.run(`
+    interpreter.run(`
       exports.a = bizData.field3.field3 + 5
-      exports.c = bizData.field2
+      exports.b = bizData.field1 + 5
+      exports.c = bizData.field1
+    `);
+    expect(interpreter.exports.a).toEqual(null);
+    expect(interpreter.exports.b).toEqual(null);
+    expect(interpreter.exports.c).toEqual(null);
+  })
+
+  it('null2Zero in Function', () => {
+    const interpreter = new Sval({ nullSafe: true })
+
+    const bizData: any = { field1: null, field2: true }
+    const objectType = { field1: TYPE.NUMBER, field2: TYPE.BOOLEAN }
+    interpreter.import({ bizData })
+    interpreter.import(funcMap);
+    interpreter.run(`
+      exports.a = ABS(bizData.field1);
+      exports.b = ABS(bizData.field1) + 1;
+      exports.c = ABS(FirstNotNull(bizData.field1));
+      exports.d = ABS(IF(bizData.field2, bizData.field3, bizData.field3 + 1));
+    `, { null2Zero: true, objectType, funcTypeMap: FuncTypeMap })
+
+    expect(interpreter.exports.a).toEqual(0)
+    expect(interpreter.exports.b).toEqual(1)
+    expect(interpreter.exports.c).toEqual(null)
+    expect(interpreter.exports.d).toEqual(null)
+    interpreter.run(`
+      exports.a = ABS(bizData.field1);
+      exports.b = ABS(bizData.field1) + 1;
+      exports.c = ABS(FirstNotNull(bizData.field1));
+      exports.d = ABS(IF(bizData.field2, bizData.field3, bizData.field3 + 1));
     `)
 
-      expect(interpreter.exports.a).toBeNaN()
-      expect(interpreter.exports.c).toBe(undefined)
+    expect(interpreter.exports.a).toEqual(null)
+    expect(interpreter.exports.b).toEqual(null)
+    expect(interpreter.exports.c).toEqual(null)
+    expect(interpreter.exports.d).toEqual(null)
   })
 
   it('should call expression run normally', () => {
@@ -75,13 +114,13 @@ describe('testing src/expression.ts', () => {
     class A {
       a = 1
 
-      then () {
+      then() {
         this.a++
         return this
       }
     }
 
-    interpreter.import({A})
+    interpreter.import({ A })
     interpreter.run('exports.inst = new A().then()')
 
     expect(interpreter.exports.inst.a).toBe(2)
@@ -200,7 +239,7 @@ describe('testing src/expression.ts', () => {
       exports.a ^= 1
       expect(exports.a).toBe(0)
     `
-    interpreter.import({expect})
+    interpreter.import({ expect })
     interpreter.run(`!async function(){${ code }}()`) // also test for generator env
     interpreter.run(code)
   })
@@ -242,7 +281,7 @@ describe('testing src/expression.ts', () => {
   })
   it('should parse regular expression normally', () => {
     const interpreter = new Sval()
-    interpreter.import({expect})
+    interpreter.import({ expect })
     interpreter.run(`
       const re = /\\/\\*<([^>]+?)>\\*\\/([\\s\\S]*?)\\/\\*<\\/([^>]+?)>\\*\\//g
       exports.a = '/*<add>*//*hello*//*</add>*/ /*<add>*//*world*//*</add>*/'
@@ -257,7 +296,7 @@ describe('testing src/expression.ts', () => {
 
   it('should support object expression', () => {
     const interpreter = new Sval()
-    interpreter.import({expect})
+    interpreter.import({ expect })
     interpreter.run(`
       const name = 'y'
       const values = { a: 1, b: 2 }
@@ -292,10 +331,10 @@ describe('testing src/expression.ts', () => {
 
     const b = {
       _t: 1,
-      get t () {
+      get t() {
         return this._t
       },
-      set t (v) {
+      set t(v) {
         this._t = v
       }
     }
@@ -344,7 +383,7 @@ describe('testing src/expression.ts', () => {
 
   it('should support logic expression', () => {
     const interpreter = new Sval()
-    interpreter.import({expect})
+    interpreter.import({ expect })
     interpreter.run(`
       const x = 0
       const y = true

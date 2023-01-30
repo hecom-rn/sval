@@ -1,6 +1,7 @@
 import { NOINIT, DEADZONE } from '../share/const'
 import { Variable, Var, Prop } from './variable'
 import { create, define } from '../share/util'
+import {FunctionTypeMap, ObjectType} from "../index";
 
 export interface OperatorHandle {
     (...args:any[]):any
@@ -40,6 +41,8 @@ export default class Scope {
   public nullSafe: boolean = false
 
   public null2Zero: boolean = false
+  public funcTypeMap: FunctionTypeMap;
+  public objectType: ObjectType;
 
   /**
    * Create a simulated scope

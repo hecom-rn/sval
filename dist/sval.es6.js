@@ -1,8 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('acorn')) :
-  typeof define === 'function' && define.amd ? define(['acorn'], factory) :
-  (global = global || self, global.Sval = factory(global.acorn));
-}(this, (function (acorn) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('acorn')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'acorn'], factory) :
+  (global = global || self, factory(global.Sval = {}, global.acorn));
+}(this, (function (exports, acorn) { 'use strict';
 
   var declaration = /*#__PURE__*/Object.freeze({
     __proto__: null,
@@ -12,15 +12,6 @@
     get ClassDeclaration () { return ClassDeclaration; },
     get ClassBody () { return ClassBody; },
     get MethodDefinition () { return MethodDefinition; }
-  });
-  var declaration$1 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    get FunctionDeclaration () { return FunctionDeclaration$1; },
-    get VariableDeclaration () { return VariableDeclaration$1; },
-    get VariableDeclarator () { return VariableDeclarator$1; },
-    get ClassDeclaration () { return ClassDeclaration$1; },
-    get ClassBody () { return ClassBody$1; },
-    get MethodDefinition () { return MethodDefinition$1; }
   });
 
   const freeze = Object.freeze;
@@ -359,33 +350,9 @@
   function createSymbol(key) {
       return key + Math.random().toString(36).substring(2);
   }
-  function getAsyncIterator(obj) {
-      let iterator;
-      if (typeof Symbol === 'function') {
-          iterator = obj[Symbol.asyncIterator];
-          !iterator && (iterator = obj[Symbol.iterator]);
-      }
-      if (iterator) {
-          return iterator.call(obj);
-      }
-      else if (typeof obj.next === 'function') {
-          return obj;
-      }
-      else {
-          let i = 0;
-          return {
-              next() {
-                  if (obj && i >= obj.length)
-                      obj = undefined;
-                  return { value: obj && obj[i++], done: !obj };
-              }
-          };
-      }
-  }
 
   var version = "0.4.8";
 
-  const AWAIT = { RES: undefined };
   const RETURN = { RES: undefined };
   const CONTINUE = createSymbol('continue');
   const BREAK = createSymbol('break');
@@ -660,22 +627,27 @@
   function FunctionExpression(node, scope) {
       if (node.id && node.id.name) {
           const tmpScope = new Scope(scope);
-          const func = createFunc$1(node, tmpScope);
+          const func = createFunc(node, tmpScope);
           tmpScope.const(node.id.name, func);
           return func;
       }
       else {
-          return createFunc$1(node, scope);
+          return createFunc(node, scope);
       }
   }
   function UnaryExpression(node, scope) {
       const arg = node.argument;
       switch (node.operator) {
-          case '+': return +(evaluate(arg, scope));
-          case '-': return -(evaluate(arg, scope));
-          case '!': return !(evaluate(arg, scope));
-          case '~': return ~(evaluate(arg, scope));
-          case 'void': return void (evaluate(arg, scope));
+          case '+':
+              return +(evaluate(arg, scope));
+          case '-':
+              return -(evaluate(arg, scope));
+          case '!':
+              return !(evaluate(arg, scope));
+          case '~':
+              return ~(evaluate(arg, scope));
+          case 'void':
+              return void (evaluate(arg, scope));
           case 'typeof':
               if (arg.type === 'Identifier') {
                   return typeof (Identifier(arg, scope, { throwErr: false }));
@@ -695,7 +667,8 @@
                   evaluate(arg, scope);
                   return true;
               }
-          default: throw new SyntaxError(`Unexpected token ${node.operator}`);
+          default:
+              throw new SyntaxError(`Unexpected token ${node.operator}`);
       }
   }
   function UpdateExpression(node, scope) {
@@ -726,42 +699,75 @@
   function BinaryExpression(node, scope) {
       let left = evaluate(node.left, scope);
       let right = evaluate(node.right, scope);
-      const null2Zero = scope.null2Zero;
-      left = null2Zero ? left !== null && left !== void 0 ? left : 0 : left;
-      right = null2Zero ? right !== null && right !== void 0 ? right : 0 : right;
+      if (scope.null2Zero) {
+          if (needNull2Zero(node.left, scope)) {
+              left = left !== null && left !== void 0 ? left : 0;
+          }
+          if (needNull2Zero(node.right, scope)) {
+              right = right !== null && right !== void 0 ? right : 0;
+          }
+      }
+      left = left === null ? undefined : left;
+      right = right === null ? undefined : right;
       const handle = scope.findOperator(node.operator);
       if (handle) {
           return handle(left, right, node, scope);
       }
       switch (node.operator) {
-          case '==': return left == right;
-          case '!=': return left != right;
-          case '===': return left === right;
-          case '!==': return left !== right;
-          case '<': return left < right;
-          case '<=': return left <= right;
-          case '>': return left > right;
-          case '>=': return left >= right;
-          case '<<': return left << right;
-          case '>>': return left >> right;
-          case '>>>': return left >>> right;
-          case '+': return left + right;
-          case '-': return left - right;
-          case '*': return left * right;
-          case '**': return Math.pow(left, right);
-          case '/': return left / right;
-          case '%': return left % right;
-          case '|': return left | right;
-          case '^': return left ^ right;
-          case '&': return left & right;
-          case 'in': return left in right;
-          case 'instanceof': return left instanceof right;
-          default: throw new SyntaxError(`Unexpected token ${node.operator}`);
+          case '==':
+              return left == right;
+          case '!=':
+              return left != right;
+          case '===':
+              return left === right;
+          case '!==':
+              return left !== right;
+          case '<':
+              return left < right;
+          case '<=':
+              return left <= right;
+          case '>':
+              return left > right;
+          case '>=':
+              return left >= right;
+          case '<<':
+              return left << right;
+          case '>>':
+              return left >> right;
+          case '>>>':
+              return left >>> right;
+          case '+':
+              return left + right;
+          case '-':
+              return left - right;
+          case '*':
+              return left * right;
+          case '**':
+              return Math.pow(left, right);
+          case '/':
+              return left / right;
+          case '%':
+              return left % right;
+          case '|':
+              return left | right;
+          case '^':
+              return left ^ right;
+          case '&':
+              return left & right;
+          case 'in':
+              return left in right;
+          case 'instanceof':
+              return left instanceof right;
+          default:
+              throw new SyntaxError(`Unexpected token ${node.operator}`);
       }
   }
   function AssignmentExpression(node, scope) {
       let value = evaluate(node.right, scope);
-      value = scope.null2Zero ? value !== null && value !== void 0 ? value : 0 : value;
+      if (needNull2Zero(node.right, scope)) {
+          value = value !== null && value !== void 0 ? value : 0;
+      }
+      value = value !== value ? null : value;
       const left = node.left;
       let variable;
       if (left.type === 'Identifier') {
@@ -775,7 +781,7 @@
           variable = MemberExpression(left, scope, { getVar: true });
       }
       else {
-          return pattern$3(left, scope, { feed: value });
+          return pattern$1(left, scope, { feed: value });
       }
       switch (node.operator) {
           case '=':
@@ -817,7 +823,8 @@
           case '&=':
               variable.set(variable.get() & value);
               return variable.get();
-          default: throw new SyntaxError(`Unexpected token ${node.operator}`);
+          default:
+              throw new SyntaxError(`Unexpected token ${node.operator}`);
       }
   }
   function LogicalExpression(node, scope) {
@@ -936,7 +943,11 @@
               args = args.concat(SpreadElement(arg, scope));
           }
           else {
-              args.push(evaluate(arg, scope));
+              let param = evaluate(arg, scope);
+              if (needNull2Zero(arg, scope) && FunctionArgType(func.name, i, scope)) {
+                  param = param !== null && param !== void 0 ? param : 0;
+              }
+              args.push(param);
           }
       }
       if (node.callee.type === 'Super') {
@@ -996,7 +1007,7 @@
       return result;
   }
   function ArrowFunctionExpression(node, scope) {
-      return createFunc$1(node, scope);
+      return createFunc(node, scope);
   }
   function TemplateLiteral(node, scope) {
       const quasis = node.quasis.slice();
@@ -1036,12 +1047,12 @@
   function ClassExpression(node, scope) {
       if (node.id && node.id.name) {
           const tmpScope = new Scope(scope);
-          const klass = createClass$1(node, tmpScope);
+          const klass = createClass(node, tmpScope);
           tmpScope.const(node.id.name, klass);
           return klass;
       }
       else {
-          return createClass$1(node, scope);
+          return createClass(node, scope);
       }
   }
   function Super(node, scope, options = {}) {
@@ -1086,7 +1097,7 @@
       const { invasived = false, hoisted = false, } = options;
       const subScope = invasived ? scope : new Scope(scope);
       if (!hoisted) {
-          hoist$1(block, subScope, { onlyBlock: true });
+          hoist(block, subScope, { onlyBlock: true });
       }
       for (let i = 0; i < block.body.length; i++) {
           const result = evaluate(block.body[i], subScope);
@@ -1164,7 +1175,7 @@
                       subScope.var(name, err);
                   }
                   else {
-                      pattern$3(param, scope, { feed: err });
+                      pattern$1(param, scope, { feed: err });
                   }
               }
               return CatchClause(node.handler, subScope);
@@ -1237,7 +1248,7 @@
   }
   function ForInStatement(node, scope) {
       for (const value in evaluate(node.right, scope)) {
-          const result = ForXHandler$1(node, scope, { value });
+          const result = ForXHandler(node, scope, { value });
           if (result === BREAK) {
               break;
           }
@@ -1252,7 +1263,7 @@
   function ForOfStatement(node, scope) {
       const right = evaluate(node.right, scope);
       for (const value of right) {
-          const result = ForXHandler$1(node, scope, { value });
+          const result = ForXHandler(node, scope, { value });
           if (result === BREAK) {
               break;
           }
@@ -1300,7 +1311,7 @@
                           scope[kind](value.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
                       }
                       else {
-                          pattern$3(value, scope, { kind, hoist, onlyBlock });
+                          pattern$1(value, scope, { kind, hoist, onlyBlock });
                       }
                   }
                   else {
@@ -1322,7 +1333,7 @@
                   scope[kind](value.name, feed[key]);
               }
               else {
-                  pattern$3(value, scope, { kind, feed: feed[key] });
+                  pattern$1(value, scope, { kind, feed: feed[key] });
               }
           }
           else {
@@ -1346,7 +1357,7 @@
                       scope[kind](element.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
                   }
                   else {
-                      pattern$3(element, scope, { kind, hoist, onlyBlock });
+                      pattern$1(element, scope, { kind, hoist, onlyBlock });
                   }
               }
           }
@@ -1364,7 +1375,7 @@
               RestElement(element, scope, { kind, feed: feed.slice(i) });
           }
           else {
-              pattern$3(element, scope, { kind, feed: feed[i] });
+              pattern$1(element, scope, { kind, feed: feed[i] });
           }
       }
       if (result.length) {
@@ -1380,7 +1391,7 @@
                   scope[kind](arg.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
               }
               else {
-                  pattern$3(arg, scope, { kind, hoist, onlyBlock });
+                  pattern$1(arg, scope, { kind, hoist, onlyBlock });
               }
           }
       }
@@ -1394,7 +1405,7 @@
           }
       }
       else {
-          pattern$3(arg, scope, { kind, feed });
+          pattern$1(arg, scope, { kind, feed });
       }
   }
   function AssignmentPattern(node, scope, options = {}) {
@@ -1406,7 +1417,7 @@
                   scope[kind](left.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
               }
               else {
-                  pattern$3(left, scope, { kind, hoist, onlyBlock });
+                  pattern$1(left, scope, { kind, hoist, onlyBlock });
               }
           }
       }
@@ -1414,7 +1425,7 @@
           scope[kind](left.name, feed);
       }
       else {
-          pattern$3(left, scope, { kind, feed });
+          pattern$1(left, scope, { kind, feed });
       }
   }
 
@@ -1454,7 +1465,7 @@
   }
 
   function FunctionDeclaration(node, scope) {
-      scope.func(node.id.name, createFunc$1(node, scope));
+      scope.func(node.id.name, createFunc(node, scope));
   }
   function VariableDeclaration(node, scope, options = {}) {
       for (let i = 0; i < node.declarations.length; i++) {
@@ -1469,7 +1480,7 @@
                   scope[kind](node.id.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
               }
               else {
-                  pattern$3(node.id, scope, { kind, hoist, onlyBlock });
+                  pattern$1(node.id, scope, { kind, hoist, onlyBlock });
               }
           }
       }
@@ -1495,12 +1506,12 @@
               }
           }
           else {
-              pattern$3(node.id, scope, { kind, feed: value });
+              pattern$1(node.id, scope, { kind, feed: value });
           }
       }
   }
   function ClassDeclaration(node, scope) {
-      scope.func(node.id.name, createClass$1(node, scope));
+      scope.func(node.id.name, createClass(node, scope));
   }
   function ClassBody(node, scope, options = {}) {
       const { klass, superClass } = options;
@@ -1513,1034 +1524,6 @@
       let key;
       if (node.computed) {
           key = evaluate(node.key, scope);
-      }
-      else if (node.key.type === 'Identifier') {
-          key = node.key.name;
-      }
-      else {
-          throw new SyntaxError('Unexpected token');
-      }
-      const obj = node.static ? klass : klass.prototype;
-      const value = createFunc$1(node.value, scope, { superClass });
-      switch (node.kind) {
-          case 'constructor':
-              break;
-          case 'method':
-              define(obj, key, {
-                  value,
-                  writable: true,
-                  configurable: true,
-              });
-              break;
-          case 'get': {
-              const oriDptor = getDptor(obj, key);
-              define(obj, key, {
-                  get: value,
-                  set: oriDptor && oriDptor.set,
-                  configurable: true,
-              });
-              break;
-          }
-          case 'set': {
-              const oriDptor = getDptor(obj, key);
-              define(obj, key, {
-                  get: oriDptor && oriDptor.get,
-                  set: value,
-                  configurable: true,
-              });
-              break;
-          }
-          default:
-              throw new SyntaxError('Unexpected token');
-      }
-  }
-
-  function* Identifier$1(node, scope, options = {}) {
-      const { getVar = false, throwErr = true } = options;
-      if (node.name === 'undefined') {
-          return undefined;
-      }
-      const variable = scope.find(node.name);
-      if (variable) {
-          if (getVar) {
-              return variable;
-          }
-          else {
-              const value = variable.get();
-              if (value === DEADZONE) {
-                  throw new ReferenceError(`${node.name} is not defined`);
-              }
-              else {
-                  return value;
-              }
-          }
-      }
-      else if (throwErr) {
-          throw new ReferenceError(`${node.name} is not defined`);
-      }
-      else {
-          return undefined;
-      }
-  }
-
-  var identifier$1 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    Identifier: Identifier$1
-  });
-
-  function* Literal$1(node, scope) {
-      return node.value;
-  }
-
-  var literal$1 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    Literal: Literal$1
-  });
-
-  function* ThisExpression$1(node, scope) {
-      const superCall = scope.find(SUPERCALL);
-      if (superCall && !superCall.get()) {
-          throw new ReferenceError('Must call super constructor in derived class '
-              + 'before accessing \'this\' or returning from derived constructor');
-      }
-      else {
-          return scope.find('this').get();
-      }
-  }
-  function* ArrayExpression$1(node, scope) {
-      let results = [];
-      for (let i = 0; i < node.elements.length; i++) {
-          const item = node.elements[i];
-          if (item.type === 'SpreadElement') {
-              results = results.concat(yield* SpreadElement$1(item, scope));
-          }
-          else {
-              results.push(yield* evaluate$1(item, scope));
-          }
-      }
-      return results;
-  }
-  function* ObjectExpression$1(node, scope) {
-      const object = {};
-      for (let i = 0; i < node.properties.length; i++) {
-          const property = node.properties[i];
-          if (property.type === 'SpreadElement') {
-              assign(object, yield* SpreadElement$1(property, scope));
-          }
-          else {
-              let key;
-              const propKey = property.key;
-              if (property.computed) {
-                  key = yield* evaluate$1(propKey, scope);
-              }
-              else {
-                  if (propKey.type === 'Identifier') {
-                      key = propKey.name;
-                  }
-                  else {
-                      key = '' + (yield* Literal$1(propKey));
-                  }
-              }
-              const value = yield* evaluate$1(property.value, scope);
-              const propKind = property.kind;
-              if (propKind === 'init') {
-                  object[key] = value;
-              }
-              else if (propKind === 'get') {
-                  const oriDptor = getDptor(object, key);
-                  define(object, key, {
-                      get: value,
-                      set: oriDptor && oriDptor.set,
-                      enumerable: true,
-                      configurable: true
-                  });
-              }
-              else {
-                  const oriDptor = getDptor(object, key);
-                  define(object, key, {
-                      get: oriDptor && oriDptor.get,
-                      set: value,
-                      enumerable: true,
-                      configurable: true
-                  });
-              }
-          }
-      }
-      return object;
-  }
-  function* FunctionExpression$1(node, scope) {
-      if (node.id && node.id.name) {
-          const tmpScope = new Scope(scope);
-          const func = createFunc(node, tmpScope);
-          tmpScope.const(node.id.name, func);
-          return func;
-      }
-      else {
-          return createFunc(node, scope);
-      }
-  }
-  function* UnaryExpression$1(node, scope) {
-      const arg = node.argument;
-      switch (node.operator) {
-          case '+': return +(yield* evaluate$1(arg, scope));
-          case '-': return -(yield* evaluate$1(arg, scope));
-          case '!': return !(yield* evaluate$1(arg, scope));
-          case '~': return ~(yield* evaluate$1(arg, scope));
-          case 'void': return void (yield* evaluate$1(arg, scope));
-          case 'typeof':
-              if (arg.type === 'Identifier') {
-                  return typeof (yield* Identifier$1(arg, scope, { throwErr: false }));
-              }
-              else {
-                  return typeof (yield* evaluate$1(arg, scope));
-              }
-          case 'delete':
-              if (arg.type === 'MemberExpression') {
-                  const variable = yield* MemberExpression$1(arg, scope, { getVar: true });
-                  return variable.del();
-              }
-              else if (arg.type === 'Identifier') {
-                  throw new SyntaxError('Delete of an unqualified identifier in strict mode');
-              }
-              else {
-                  yield* evaluate$1(arg, scope);
-                  return true;
-              }
-          default: throw new SyntaxError(`Unexpected token ${node.operator}`);
-      }
-  }
-  function* UpdateExpression$1(node, scope) {
-      const arg = node.argument;
-      let variable;
-      if (arg.type === 'Identifier') {
-          variable = yield* Identifier$1(arg, scope, { getVar: true });
-      }
-      else if (arg.type === 'MemberExpression') {
-          variable = yield* MemberExpression$1(arg, scope, { getVar: true });
-      }
-      else {
-          throw new SyntaxError('Unexpected token');
-      }
-      const value = variable.get();
-      if (node.operator === '++') {
-          variable.set(value + 1);
-          return node.prefix ? variable.get() : value;
-      }
-      else if (node.operator === '--') {
-          variable.set(value - 1);
-          return node.prefix ? variable.get() : value;
-      }
-      else {
-          throw new SyntaxError(`Unexpected token ${node.operator}`);
-      }
-  }
-  function* BinaryExpression$1(node, scope) {
-      let left = yield* evaluate$1(node.left, scope);
-      let right = yield* evaluate$1(node.right, scope);
-      const null2Zero = scope.null2Zero;
-      left = null2Zero ? left !== null && left !== void 0 ? left : 0 : left;
-      right = null2Zero ? right !== null && right !== void 0 ? right : 0 : right;
-      const handle = scope.findOperator(node.operator);
-      if (handle) {
-          return handle(left, right, node, scope);
-      }
-      switch (node.operator) {
-          case '==': return left == right;
-          case '!=': return left != right;
-          case '===': return left === right;
-          case '!==': return left !== right;
-          case '<': return left < right;
-          case '<=': return left <= right;
-          case '>': return left > right;
-          case '>=': return left >= right;
-          case '<<': return left << right;
-          case '>>': return left >> right;
-          case '>>>': return left >>> right;
-          case '+': return left + right;
-          case '-': return left - right;
-          case '*': return left * right;
-          case '**': return Math.pow(left, right);
-          case '/': return left / right;
-          case '%': return left % right;
-          case '|': return left | right;
-          case '^': return left ^ right;
-          case '&': return left & right;
-          case 'in': return left in right;
-          case 'instanceof': return left instanceof right;
-          default: throw new SyntaxError(`Unexpected token ${node.operator}`);
-      }
-  }
-  function* AssignmentExpression$1(node, scope) {
-      let value = yield* evaluate$1(node.right, scope);
-      value = scope.null2Zero ? value !== null && value !== void 0 ? value : 0 : value;
-      const left = node.left;
-      let variable;
-      if (left.type === 'Identifier') {
-          variable = yield* Identifier$1(left, scope, { getVar: true, throwErr: false });
-          if (!variable) {
-              const win = scope.global().find('window').get();
-              variable = new Prop(win, left.name);
-          }
-      }
-      else if (left.type === 'MemberExpression') {
-          variable = yield* MemberExpression$1(left, scope, { getVar: true });
-      }
-      else {
-          return yield* pattern$2(left, scope, { feed: value });
-      }
-      switch (node.operator) {
-          case '=':
-              variable.set(value);
-              return variable.get();
-          case '+=':
-              variable.set(variable.get() + value);
-              return variable.get();
-          case '-=':
-              variable.set(variable.get() - value);
-              return variable.get();
-          case '*=':
-              variable.set(variable.get() * value);
-              return variable.get();
-          case '/=':
-              variable.set(variable.get() / value);
-              return variable.get();
-          case '%=':
-              variable.set(variable.get() % value);
-              return variable.get();
-          case '**=':
-              variable.set(Math.pow(variable.get(), value));
-              return variable.get();
-          case '<<=':
-              variable.set(variable.get() << value);
-              return variable.get();
-          case '>>=':
-              variable.set(variable.get() >> value);
-              return variable.get();
-          case '>>>=':
-              variable.set(variable.get() >>> value);
-              return variable.get();
-          case '|=':
-              variable.set(variable.get() | value);
-              return variable.get();
-          case '^=':
-              variable.set(variable.get() ^ value);
-              return variable.get();
-          case '&=':
-              variable.set(variable.get() & value);
-              return variable.get();
-          default: throw new SyntaxError(`Unexpected token ${node.operator}`);
-      }
-  }
-  function* LogicalExpression$1(node, scope) {
-      switch (node.operator) {
-          case '||':
-              return (yield* evaluate$1(node.left, scope)) || (yield* evaluate$1(node.right, scope));
-          case '&&':
-              return (yield* evaluate$1(node.left, scope)) && (yield* evaluate$1(node.right, scope));
-          default:
-              throw new SyntaxError(`Unexpected token ${node.operator}`);
-      }
-  }
-  function* MemberExpression$1(node, scope, options = {}) {
-      const { getObj = false, getVar = false } = options;
-      let object;
-      if (node.object.type === 'Super') {
-          object = yield* Super$1(node.object, scope, { getProto: true });
-      }
-      else {
-          object = yield* evaluate$1(node.object, scope);
-      }
-      if (getObj)
-          return object;
-      let key;
-      if (node.computed) {
-          key = yield* evaluate$1(node.property, scope);
-      }
-      else {
-          key = node.property.name;
-      }
-      if (getVar) {
-          const setter = getSetter(object, key);
-          if (node.object.type === 'Super' && setter) {
-              const thisObject = scope.find('this').get();
-              const privateKey = createSymbol(key);
-              define(thisObject, privateKey, { set: setter });
-              return new Prop(thisObject, privateKey);
-          }
-          else {
-              return new Prop(object, key);
-          }
-      }
-      else {
-          const getter = getGetter(object, key);
-          if (node.object.type === 'Super' && getter) {
-              const thisObject = scope.find('this').get();
-              return getter.call(thisObject);
-          }
-          else {
-              if (scope.nullSafe && (object === null || object === undefined)) {
-                  return object;
-              }
-              return object[key];
-          }
-      }
-  }
-  function* ConditionalExpression$1(node, scope) {
-      return (yield* evaluate$1(node.test, scope))
-          ? (yield* evaluate$1(node.consequent, scope))
-          : (yield* evaluate$1(node.alternate, scope));
-  }
-  function* CallExpression$1(node, scope) {
-      let func;
-      let object;
-      if (node.callee.type === 'MemberExpression') {
-          object = yield* MemberExpression$1(node.callee, scope, { getObj: true });
-          let key;
-          if (node.callee.computed) {
-              key = yield* evaluate$1(node.callee.property, scope);
-          }
-          else {
-              key = node.callee.property.name;
-          }
-          if (node.callee.object.type === 'Super') {
-              const thisObject = scope.find('this').get();
-              func = object[key].bind(thisObject);
-          }
-          else {
-              func = object[key];
-          }
-          if (typeof func !== 'function') {
-              throw new TypeError(`${key} is not a function`);
-          }
-          else if (func[CLSCTOR]) {
-              throw new TypeError(`Class constructor ${key} cannot be invoked without 'new'`);
-          }
-      }
-      else {
-          object = scope.find('this').get();
-          func = yield* evaluate$1(node.callee, scope);
-          if (typeof func !== 'function' || node.callee.type !== 'Super' && func[CLSCTOR]) {
-              let name;
-              if (node.callee.type === 'Identifier') {
-                  name = node.callee.name;
-              }
-              else {
-                  try {
-                      name = JSON.stringify(func);
-                  }
-                  catch (err) {
-                      name = '' + func;
-                  }
-              }
-              if (typeof func !== 'function') {
-                  throw new TypeError(`${name} is not a function`);
-              }
-              else {
-                  throw new TypeError(`Class constructor ${name} cannot be invoked without 'new'`);
-              }
-          }
-      }
-      let args = [];
-      for (let i = 0; i < node.arguments.length; i++) {
-          const arg = node.arguments[i];
-          if (arg.type === 'SpreadElement') {
-              args = args.concat(yield* SpreadElement$1(arg, scope));
-          }
-          else {
-              args.push(yield* evaluate$1(arg, scope));
-          }
-      }
-      if (node.callee.type === 'Super') {
-          const superCall = scope.find(SUPERCALL);
-          if (superCall.get()) {
-              throw new ReferenceError('Super constructor may only be called once');
-          }
-          else {
-              scope.find(SUPERCALL).set(true);
-          }
-      }
-      if (object && object[WINDOW] && func.toString().indexOf('[native code]') !== -1) {
-          return func.apply(object[WINDOW], args);
-      }
-      return func.apply(object, args);
-  }
-  function* NewExpression$1(node, scope) {
-      const constructor = yield* evaluate$1(node.callee, scope);
-      if (typeof constructor !== 'function') {
-          let name;
-          if (node.callee.type === 'Identifier') {
-              name = node.callee.name;
-          }
-          else {
-              try {
-                  name = JSON.stringify(constructor);
-              }
-              catch (err) {
-                  name = '' + constructor;
-              }
-          }
-          throw new TypeError(`${name} is not a constructor`);
-      }
-      else if (constructor[NOCTOR]) {
-          throw new TypeError(`${constructor.name || '(intermediate value)'} is not a constructor`);
-      }
-      let args = [];
-      for (let i = 0; i < node.arguments.length; i++) {
-          const arg = node.arguments[i];
-          if (arg.type === 'SpreadElement') {
-              args = args.concat(yield* SpreadElement$1(arg, scope));
-          }
-          else {
-              args.push(yield* evaluate$1(arg, scope));
-          }
-      }
-      return new constructor(...args);
-  }
-  function* MetaProperty$1(node, scope) {
-      return scope.find(NEWTARGET).get();
-  }
-  function* SequenceExpression$1(node, scope) {
-      let result;
-      for (let i = 0; i < node.expressions.length; i++) {
-          result = yield* evaluate$1(node.expressions[i], scope);
-      }
-      return result;
-  }
-  function* ArrowFunctionExpression$1(node, scope) {
-      return createFunc(node, scope);
-  }
-  function* TemplateLiteral$1(node, scope) {
-      const quasis = node.quasis.slice();
-      const expressions = node.expressions.slice();
-      let result = '';
-      let temEl;
-      let expr;
-      while (temEl = quasis.shift()) {
-          result += yield* TemplateElement$1(temEl);
-          expr = expressions.shift();
-          if (expr) {
-              result += yield* evaluate$1(expr, scope);
-          }
-      }
-      return result;
-  }
-  function* TaggedTemplateExpression$1(node, scope) {
-      const tagFunc = yield* evaluate$1(node.tag, scope);
-      const quasis = node.quasi.quasis;
-      const str = quasis.map(v => v.value.cooked);
-      const raw = quasis.map(v => v.value.raw);
-      define(str, 'raw', {
-          value: freeze(raw)
-      });
-      const expressions = node.quasi.expressions;
-      const args = [];
-      if (expressions) {
-          for (let i = 0; i < expressions.length; i++) {
-              args.push(yield* evaluate$1(expressions[i], scope));
-          }
-      }
-      return tagFunc(freeze(str), ...args);
-  }
-  function* TemplateElement$1(node, scope) {
-      return node.value.raw;
-  }
-  function* ClassExpression$1(node, scope) {
-      if (node.id && node.id.name) {
-          const tmpScope = new Scope(scope);
-          const klass = yield* createClass(node, tmpScope);
-          tmpScope.const(node.id.name, klass);
-          return klass;
-      }
-      else {
-          return yield* createClass(node, scope);
-      }
-  }
-  function* Super$1(node, scope, options = {}) {
-      const { getProto = false } = options;
-      const superClass = scope.find(SUPER).get();
-      return getProto ? superClass.prototype : superClass;
-  }
-  function* SpreadElement$1(node, scope) {
-      return yield* evaluate$1(node.argument, scope);
-  }
-  function* YieldExpression(node, scope) {
-      const res = yield* evaluate$1(node.argument, scope);
-      return node.delegate ? yield* res : yield res;
-  }
-  function* AwaitExpression(node, scope) {
-      AWAIT.RES = yield* evaluate$1(node.argument, scope);
-      return yield AWAIT;
-  }
-
-  var expression$1 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    ThisExpression: ThisExpression$1,
-    ArrayExpression: ArrayExpression$1,
-    ObjectExpression: ObjectExpression$1,
-    FunctionExpression: FunctionExpression$1,
-    UnaryExpression: UnaryExpression$1,
-    UpdateExpression: UpdateExpression$1,
-    BinaryExpression: BinaryExpression$1,
-    AssignmentExpression: AssignmentExpression$1,
-    LogicalExpression: LogicalExpression$1,
-    MemberExpression: MemberExpression$1,
-    ConditionalExpression: ConditionalExpression$1,
-    CallExpression: CallExpression$1,
-    NewExpression: NewExpression$1,
-    MetaProperty: MetaProperty$1,
-    SequenceExpression: SequenceExpression$1,
-    ArrowFunctionExpression: ArrowFunctionExpression$1,
-    TemplateLiteral: TemplateLiteral$1,
-    TaggedTemplateExpression: TaggedTemplateExpression$1,
-    TemplateElement: TemplateElement$1,
-    ClassExpression: ClassExpression$1,
-    Super: Super$1,
-    SpreadElement: SpreadElement$1,
-    YieldExpression: YieldExpression,
-    AwaitExpression: AwaitExpression
-  });
-
-  function* ExpressionStatement$1(node, scope) {
-      yield* evaluate$1(node.expression, scope);
-  }
-  function* BlockStatement$1(block, scope, options = {}) {
-      const { invasived = false, hoisted = false, } = options;
-      const subScope = invasived ? scope : new Scope(scope);
-      if (!hoisted) {
-          yield* hoist(block, subScope, { onlyBlock: true });
-      }
-      for (let i = 0; i < block.body.length; i++) {
-          const result = yield* evaluate$1(block.body[i], subScope);
-          if (result === BREAK || result === CONTINUE || result === RETURN) {
-              return result;
-          }
-      }
-  }
-  function* EmptyStatement$1() {
-  }
-  function* DebuggerStatement$1() {
-      debugger;
-  }
-  function* ReturnStatement$1(node, scope) {
-      RETURN.RES = node.argument ? (yield* evaluate$1(node.argument, scope)) : undefined;
-      return RETURN;
-  }
-  function* BreakStatement$1() {
-      return BREAK;
-  }
-  function* ContinueStatement$1() {
-      return CONTINUE;
-  }
-  function* IfStatement$1(node, scope) {
-      if (yield* evaluate$1(node.test, scope)) {
-          return yield* evaluate$1(node.consequent, scope);
-      }
-      else {
-          return yield* evaluate$1(node.alternate, scope);
-      }
-  }
-  function* SwitchStatement$1(node, scope) {
-      const discriminant = yield* evaluate$1(node.discriminant, scope);
-      let matched = false;
-      for (let i = 0; i < node.cases.length; i++) {
-          const eachCase = node.cases[i];
-          if (!matched
-              && (!eachCase.test
-                  || (yield* evaluate$1(eachCase.test, scope)) === discriminant)) {
-              matched = true;
-          }
-          if (matched) {
-              const result = yield* SwitchCase$1(eachCase, scope);
-              if (result === BREAK) {
-                  break;
-              }
-              if (result === CONTINUE || result === RETURN) {
-                  return result;
-              }
-          }
-      }
-  }
-  function* SwitchCase$1(node, scope) {
-      for (let i = 0; i < node.consequent.length; i++) {
-          const result = yield* evaluate$1(node.consequent[i], scope);
-          if (result === BREAK || result === CONTINUE || result === RETURN) {
-              return result;
-          }
-      }
-  }
-  function* ThrowStatement$1(node, scope) {
-      throw yield* evaluate$1(node.argument, scope);
-  }
-  function* TryStatement$1(node, scope) {
-      try {
-          return yield* BlockStatement$1(node.block, scope);
-      }
-      catch (err) {
-          if (node.handler) {
-              const subScope = new Scope(scope);
-              const param = node.handler.param;
-              if (param) {
-                  if (param.type === 'Identifier') {
-                      const name = param.name;
-                      subScope.var(name, err);
-                  }
-                  else {
-                      yield* pattern$2(param, scope, { feed: err });
-                  }
-              }
-              return yield* CatchClause$1(node.handler, subScope);
-          }
-          else {
-              throw err;
-          }
-      }
-      finally {
-          if (node.finalizer) {
-              const result = yield* BlockStatement$1(node.finalizer, scope);
-              if (result === BREAK || result === CONTINUE || result === RETURN) {
-                  return result;
-              }
-          }
-      }
-  }
-  function* CatchClause$1(node, scope) {
-      return yield* BlockStatement$1(node.body, scope, { invasived: true });
-  }
-  function* WhileStatement$1(node, scope) {
-      while (yield* evaluate$1(node.test, scope)) {
-          const result = yield* evaluate$1(node.body, scope);
-          if (result === BREAK) {
-              break;
-          }
-          else if (result === CONTINUE) {
-              continue;
-          }
-          else if (result === RETURN) {
-              return result;
-          }
-      }
-  }
-  function* DoWhileStatement$1(node, scope) {
-      do {
-          const result = yield* evaluate$1(node.body, scope);
-          if (result === BREAK) {
-              break;
-          }
-          else if (result === CONTINUE) {
-              continue;
-          }
-          else if (result === RETURN) {
-              return result;
-          }
-      } while (yield* evaluate$1(node.test, scope));
-  }
-  function* ForStatement$1(node, scope) {
-      const forScope = new Scope(scope);
-      for (yield* evaluate$1(node.init, forScope); node.test ? (yield* evaluate$1(node.test, forScope)) : true; yield* evaluate$1(node.update, forScope)) {
-          const subScope = new Scope(forScope);
-          let result;
-          if (node.body.type === 'BlockStatement') {
-              result = yield* BlockStatement$1(node.body, subScope, { invasived: true });
-          }
-          else {
-              result = yield* evaluate$1(node.body, subScope);
-          }
-          if (result === BREAK) {
-              break;
-          }
-          else if (result === CONTINUE) {
-              continue;
-          }
-          else if (result === RETURN) {
-              return result;
-          }
-      }
-  }
-  function* ForInStatement$1(node, scope) {
-      for (const value in yield* evaluate$1(node.right, scope)) {
-          const result = yield* ForXHandler(node, scope, { value });
-          if (result === BREAK) {
-              break;
-          }
-          else if (result === CONTINUE) {
-              continue;
-          }
-          else if (result === RETURN) {
-              return result;
-          }
-      }
-  }
-  function* ForOfStatement$1(node, scope) {
-      const right = yield* evaluate$1(node.right, scope);
-      if (node.await) {
-          const iterator = getAsyncIterator(right);
-          let ret;
-          for (AWAIT.RES = iterator.next(), ret = yield AWAIT; !ret.done; AWAIT.RES = iterator.next(), ret = yield AWAIT) {
-              const result = yield* ForXHandler(node, scope, { value: ret.value });
-              if (result === BREAK) {
-                  break;
-              }
-              else if (result === CONTINUE) {
-                  continue;
-              }
-              else if (result === RETURN) {
-                  return result;
-              }
-          }
-      }
-      else {
-          for (const value of right) {
-              const result = yield* ForXHandler(node, scope, { value });
-              if (result === BREAK) {
-                  break;
-              }
-              else if (result === CONTINUE) {
-                  continue;
-              }
-              else if (result === RETURN) {
-                  return result;
-              }
-          }
-      }
-  }
-
-  var statement$1 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    ExpressionStatement: ExpressionStatement$1,
-    BlockStatement: BlockStatement$1,
-    EmptyStatement: EmptyStatement$1,
-    DebuggerStatement: DebuggerStatement$1,
-    ReturnStatement: ReturnStatement$1,
-    BreakStatement: BreakStatement$1,
-    ContinueStatement: ContinueStatement$1,
-    IfStatement: IfStatement$1,
-    SwitchStatement: SwitchStatement$1,
-    SwitchCase: SwitchCase$1,
-    ThrowStatement: ThrowStatement$1,
-    TryStatement: TryStatement$1,
-    CatchClause: CatchClause$1,
-    WhileStatement: WhileStatement$1,
-    DoWhileStatement: DoWhileStatement$1,
-    ForStatement: ForStatement$1,
-    ForInStatement: ForInStatement$1,
-    ForOfStatement: ForOfStatement$1
-  });
-
-  function* ObjectPattern$1(node, scope, options = {}) {
-      const { kind = 'var', hoist = false, onlyBlock = false, feed = {} } = options;
-      const fedKeys = [];
-      for (let i = 0; i < node.properties.length; i++) {
-          const property = node.properties[i];
-          if (hoist) {
-              if (onlyBlock || kind === 'var') {
-                  if (property.type === 'Property') {
-                      const value = property.value;
-                      if (value.type === 'Identifier') {
-                          scope[kind](value.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
-                      }
-                      else {
-                          yield* pattern$2(value, scope, { kind, hoist, onlyBlock });
-                      }
-                  }
-                  else {
-                      yield* RestElement$1(property, scope, { kind, hoist, onlyBlock });
-                  }
-              }
-          }
-          else if (property.type === 'Property') {
-              let key;
-              if (property.computed) {
-                  key = yield* evaluate$1(property.key, scope);
-              }
-              else {
-                  key = property.key.name;
-              }
-              fedKeys.push(key);
-              const value = property.value;
-              if (value.type === 'Identifier') {
-                  scope[kind](value.name, feed[key]);
-              }
-              else {
-                  yield* pattern$2(value, scope, { kind, feed: feed[key] });
-              }
-          }
-          else {
-              const rest = assign({}, feed);
-              for (let i = 0; i < fedKeys.length; i++)
-                  delete rest[fedKeys[i]];
-              yield* RestElement$1(property, scope, { kind, feed: rest });
-          }
-      }
-  }
-  function* ArrayPattern$1(node, scope, options = {}) {
-      const { kind, hoist = false, onlyBlock = false, feed = [] } = options;
-      const result = [];
-      for (let i = 0; i < node.elements.length; i++) {
-          const element = node.elements[i];
-          if (!element)
-              continue;
-          if (hoist) {
-              if (onlyBlock || kind === 'var') {
-                  if (element.type === 'Identifier') {
-                      scope[kind](element.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
-                  }
-                  else {
-                      yield* pattern$2(element, scope, { kind, hoist, onlyBlock });
-                  }
-              }
-          }
-          else if (element.type === 'Identifier') {
-              if (kind) {
-                  scope[kind](element.name, feed[i]);
-              }
-              else {
-                  const variable = yield* Identifier$1(element, scope, { getVar: true });
-                  variable.set(feed[i]);
-                  result.push(variable.get());
-              }
-          }
-          else if (element.type === 'RestElement') {
-              yield* RestElement$1(element, scope, { kind, feed: feed.slice(i) });
-          }
-          else {
-              yield* pattern$2(element, scope, { kind, feed: feed[i] });
-          }
-      }
-      if (result.length) {
-          return result;
-      }
-  }
-  function* RestElement$1(node, scope, options = {}) {
-      const { kind, hoist = false, onlyBlock = false, feed = [] } = options;
-      const arg = node.argument;
-      if (hoist) {
-          if (onlyBlock || kind === 'var') {
-              if (arg.type === 'Identifier') {
-                  scope[kind](arg.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
-              }
-              else {
-                  yield* pattern$2(arg, scope, { kind, hoist, onlyBlock });
-              }
-          }
-      }
-      else if (arg.type === 'Identifier') {
-          if (kind) {
-              scope[kind](arg.name, feed);
-          }
-          else {
-              const variable = yield* Identifier$1(arg, scope, { getVar: true });
-              variable.set(feed);
-          }
-      }
-      else {
-          yield* pattern$2(arg, scope, { kind, feed });
-      }
-  }
-  function* AssignmentPattern$1(node, scope, options = {}) {
-      const { kind = 'var', hoist = false, onlyBlock = false, feed = yield* evaluate$1(node.right, scope) } = options;
-      const left = node.left;
-      if (hoist) {
-          if (onlyBlock || kind === 'var') {
-              if (left.type === 'Identifier') {
-                  scope[kind](left.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
-              }
-              else {
-                  yield* pattern$2(left, scope, { kind, hoist, onlyBlock });
-              }
-          }
-      }
-      else if (left.type === 'Identifier') {
-          scope[kind](left.name, feed);
-      }
-      else {
-          yield* pattern$2(left, scope, { kind, feed });
-      }
-  }
-
-  var pattern$1 = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    ObjectPattern: ObjectPattern$1,
-    ArrayPattern: ArrayPattern$1,
-    RestElement: RestElement$1,
-    AssignmentPattern: AssignmentPattern$1
-  });
-
-  let evaluateOps$1;
-  function* evaluate$1(node, scope) {
-      if (!node)
-          return;
-      if (!evaluateOps$1) {
-          evaluateOps$1 = assign({}, declaration$1, expression$1, identifier$1, statement$1, literal$1, pattern$1);
-      }
-      const handler = evaluateOps$1[node.type];
-      if (handler) {
-          return yield* handler(node, scope);
-      }
-      else {
-          throw new Error(`${node.type} isn't implemented`);
-      }
-  }
-
-  function* FunctionDeclaration$1(node, scope) {
-      scope.func(node.id.name, createFunc(node, scope));
-  }
-  function* VariableDeclaration$1(node, scope, options = {}) {
-      for (let i = 0; i < node.declarations.length; i++) {
-          yield* VariableDeclarator$1(node.declarations[i], scope, assign({ kind: node.kind }, options));
-      }
-  }
-  function* VariableDeclarator$1(node, scope, options = {}) {
-      const { kind = 'var', hoist = false, onlyBlock = false, feed } = options;
-      if (hoist) {
-          if (onlyBlock || kind === 'var') {
-              if (node.id.type === 'Identifier') {
-                  scope[kind](node.id.name, onlyBlock ? DEADZONE : kind === 'var' ? NOINIT : undefined);
-              }
-              else {
-                  yield* pattern$2(node.id, scope, { kind, hoist, onlyBlock });
-              }
-          }
-      }
-      else {
-          const hasFeed = 'feed' in options;
-          const value = hasFeed ? feed : yield* evaluate$1(node.init, scope);
-          if (node.id.type === 'Identifier') {
-              const name = node.id.name;
-              if (kind === 'var' && !node.init && !hasFeed) {
-                  scope.var(name, NOINIT);
-              }
-              else {
-                  scope[kind](name, value);
-              }
-              if (node.init
-                  && ['ClassExpression', 'FunctionExpression', 'ArrowFunctionExpression']
-                      .indexOf(node.init.type) !== -1
-                  && !value.name) {
-                  define(value, 'name', {
-                      value: name,
-                      configurable: true
-                  });
-              }
-          }
-          else {
-              yield* pattern$2(node.id, scope, { kind, feed: value });
-          }
-      }
-  }
-  function* ClassDeclaration$1(node, scope) {
-      scope.func(node.id.name, yield* createClass(node, scope));
-  }
-  function* ClassBody$1(node, scope, options = {}) {
-      const { klass, superClass } = options;
-      for (let i = 0; i < node.body.length; i++) {
-          yield* MethodDefinition$1(node.body[i], scope, { klass, superClass });
-      }
-  }
-  function* MethodDefinition$1(node, scope, options = {}) {
-      const { klass, superClass } = options;
-      let key;
-      if (node.computed) {
-          key = yield* evaluate$1(node.key, scope);
       }
       else if (node.key.type === 'Identifier') {
           key = node.key.name;
@@ -2583,292 +1566,7 @@
       }
   }
 
-  function runAsync(iterator, options = {}) {
-      const { res, err, ret, fullRet } = options;
-      return new Promise((resolve, reject) => {
-          if ('ret' in options) {
-              return resolve(iterator.return(ret));
-          }
-          if ('err' in options) {
-              onRejected(err);
-          }
-          else {
-              onFulfilled(res);
-          }
-          function onFulfilled(res) {
-              let ret;
-              try {
-                  ret = iterator.next(res);
-              }
-              catch (e) {
-                  return reject(e);
-              }
-              next(ret);
-              return null;
-          }
-          function onRejected(err) {
-              let ret;
-              try {
-                  ret = iterator.throw(err);
-              }
-              catch (e) {
-                  return reject(e);
-              }
-              next(ret);
-          }
-          function next(ret) {
-              if (ret.done)
-                  return resolve(fullRet ? ret : ret.value);
-              if (ret.value !== AWAIT)
-                  return resolve(ret);
-              const awaitValue = ret.value.RES;
-              const value = awaitValue && awaitValue.then === 'function'
-                  ? awaitValue : Promise.resolve(awaitValue);
-              return value.then(onFulfilled, onRejected);
-          }
-      });
-  }
-
-  function* hoist(block, scope, options = {}) {
-      const { onlyBlock = false } = options;
-      const funcDclrList = [];
-      const funcDclrIdxs = [];
-      for (let i = 0; i < block.body.length; i++) {
-          const statement = block.body[i];
-          if (statement.type === 'FunctionDeclaration') {
-              funcDclrList.push(statement);
-              funcDclrIdxs.push(i);
-          }
-          else if (statement.type === 'VariableDeclaration'
-              && ['const', 'let'].indexOf(statement.kind) !== -1) {
-              yield* VariableDeclaration$1(statement, scope, { hoist: true, onlyBlock: true });
-          }
-          else if (!onlyBlock) {
-              yield* hoistVarRecursion(statement, scope);
-          }
-      }
-      if (funcDclrIdxs.length) {
-          for (let i = funcDclrIdxs.length - 1; i > -1; i--) {
-              block.body.splice(funcDclrIdxs[i], 1);
-          }
-          block.body = funcDclrList.concat(block.body);
-      }
-  }
-  function* hoistVarRecursion(statement, scope) {
-      switch (statement.type) {
-          case 'VariableDeclaration':
-              yield* VariableDeclaration$1(statement, scope, { hoist: true });
-              break;
-          case 'ForInStatement':
-          case 'ForOfStatement':
-              if (statement.left.type === 'VariableDeclaration') {
-                  yield* VariableDeclaration$1(statement.left, scope, { hoist: true });
-              }
-          case 'ForStatement':
-              if (statement.type === 'ForStatement' && statement.init.type === 'VariableDeclaration') {
-                  yield* VariableDeclaration$1(statement.init, scope, { hoist: true });
-              }
-          case 'WhileStatement':
-          case 'DoWhileStatement':
-              yield* hoistVarRecursion(statement.body, scope);
-              break;
-          case 'IfStatement':
-              yield* hoistVarRecursion(statement.consequent, scope);
-              if (statement.alternate) {
-                  yield* hoistVarRecursion(statement.alternate, scope);
-              }
-              break;
-          case 'BlockStatement':
-              for (let i = 0; i < statement.body.length; i++) {
-                  yield* hoistVarRecursion(statement.body[i], scope);
-              }
-              break;
-          case 'SwitchStatement':
-              for (let i = 0; i < statement.cases.length; i++) {
-                  for (let j = 0; j < statement.cases[i].consequent.length; j++) {
-                      yield* hoistVarRecursion(statement.cases[i].consequent[j], scope);
-                  }
-              }
-              break;
-          case 'TryStatement': {
-              const tryBlock = statement.block.body;
-              for (let i = 0; i < tryBlock.length; i++) {
-                  yield* hoistVarRecursion(tryBlock[i], scope);
-              }
-              const catchBlock = statement.handler && statement.handler.body.body;
-              if (catchBlock) {
-                  for (let i = 0; i < catchBlock.length; i++) {
-                      yield* hoistVarRecursion(catchBlock[i], scope);
-                  }
-              }
-              const finalBlock = statement.finalizer && statement.finalizer.body;
-              if (finalBlock) {
-                  for (let i = 0; i < finalBlock.length; i++) {
-                      yield* hoistVarRecursion(finalBlock[i], scope);
-                  }
-              }
-              break;
-          }
-      }
-  }
-  function* pattern$2(node, scope, options = {}) {
-      switch (node.type) {
-          case 'ObjectPattern':
-              return yield* ObjectPattern$1(node, scope, options);
-          case 'ArrayPattern':
-              return yield* ArrayPattern$1(node, scope, options);
-          case 'RestElement':
-              return yield* RestElement$1(node, scope, options);
-          case 'AssignmentPattern':
-              return yield* AssignmentPattern$1(node, scope, options);
-          default:
-              throw new SyntaxError('Unexpected token');
-      }
-  }
-  function createFunc(node, scope, options = {}) {
-      if (!node.generator && !node.async) {
-          return createFunc$1(node, scope, options);
-      }
-      const { superClass, isCtor } = options;
-      const params = node.params;
-      const tmpFunc = function* (...args) {
-          const subScope = new Scope(scope, true);
-          if (node.type !== 'ArrowFunctionExpression') {
-              subScope.const('this', this);
-              subScope.let('arguments', arguments);
-              subScope.const(NEWTARGET, new.target);
-              if (superClass) {
-                  subScope.const(SUPER, superClass);
-                  if (isCtor)
-                      subScope.let(SUPERCALL, false);
-              }
-          }
-          for (let i = 0; i < params.length; i++) {
-              const param = params[i];
-              if (param.type === 'Identifier') {
-                  subScope.var(param.name, args[i]);
-              }
-              else if (param.type === 'RestElement') {
-                  yield* RestElement$1(param, subScope, { kind: 'var', feed: args.slice(i) });
-              }
-              else {
-                  yield* pattern$2(param, subScope, { feed: args[i] });
-              }
-          }
-          let result;
-          if (node.body.type === 'BlockStatement') {
-              yield* hoist(node.body, subScope);
-              result = yield* BlockStatement$1(node.body, subScope, {
-                  invasived: true,
-                  hoisted: true
-              });
-          }
-          else {
-              result = yield* evaluate$1(node.body, subScope);
-              if (node.type === 'ArrowFunctionExpression') {
-                  RETURN.RES = result;
-                  result = RETURN;
-              }
-          }
-          if (result === RETURN) {
-              return result.RES;
-          }
-      };
-      let func;
-      if (node.async && node.generator) {
-          func = function () {
-              const iterator = tmpFunc.apply(this, arguments);
-              let last = Promise.resolve();
-              let hasCatch = false;
-              const run = (opts) => last = last
-                  .then(() => runAsync(iterator, assign({ fullRet: true }, opts)))
-                  .catch(err => {
-                  if (!hasCatch) {
-                      hasCatch = true;
-                      return Promise.reject(err);
-                  }
-              });
-              const asyncIterator = {
-                  next: (res) => run({ res }),
-                  throw: (err) => run({ err }),
-                  return: (ret) => run({ ret })
-              };
-              if (typeof Symbol === 'function') {
-                  asyncIterator[Symbol.iterator] = function () { return this; };
-              }
-              return asyncIterator;
-          };
-      }
-      else if (node.async) {
-          func = function () { return runAsync(tmpFunc.apply(this, arguments)); };
-      }
-      else {
-          func = tmpFunc;
-      }
-      define(func, NOCTOR, { value: true });
-      define(func, 'name', {
-          value: node.id
-              && node.id.name
-              || '',
-          configurable: true
-      });
-      define(func, 'length', {
-          value: params.length,
-          configurable: true
-      });
-      return func;
-  }
-  function* createClass(node, scope) {
-      const superClass = yield* evaluate$1(node.superClass, scope);
-      let klass = function () {
-          if (superClass) {
-              superClass.apply(this);
-          }
-      };
-      const methodBody = node.body.body;
-      for (let i = 0; i < methodBody.length; i++) {
-          const method = methodBody[i];
-          if (method.kind === 'constructor') {
-              klass = createFunc(method.value, scope, { superClass, isCtor: true });
-              break;
-          }
-      }
-      if (superClass) {
-          inherits(klass, superClass);
-      }
-      yield* ClassBody$1(node.body, scope, { klass, superClass });
-      define(klass, CLSCTOR, { value: true });
-      define(klass, 'name', {
-          value: node.id && node.id.name || '',
-          configurable: true
-      });
-      return klass;
-  }
-  function* ForXHandler(node, scope, options) {
-      const { value } = options;
-      const left = node.left;
-      const subScope = new Scope(scope);
-      if (left.type === 'VariableDeclaration') {
-          yield* VariableDeclaration$1(left, subScope, { feed: value });
-      }
-      else if (left.type === 'Identifier') {
-          const variable = yield* Identifier(left, scope, { getVar: true });
-          variable.set(value);
-      }
-      else {
-          yield* pattern$2(left, scope, { feed: value });
-      }
-      let result;
-      if (node.body.type === 'BlockStatement') {
-          result = yield* BlockStatement$1(node.body, subScope, { invasived: true });
-      }
-      else {
-          result = yield* evaluate$1(node.body, subScope);
-      }
-      return result;
-  }
-
-  function hoist$1(block, scope, options = {}) {
+  function hoist(block, scope, options = {}) {
       const { onlyBlock = false } = options;
       const funcDclrList = [];
       const funcDclrIdxs = [];
@@ -2883,7 +1581,7 @@
               VariableDeclaration(statement, scope, { hoist: true, onlyBlock: true });
           }
           else if (!onlyBlock) {
-              hoistVarRecursion$1(statement, scope);
+              hoistVarRecursion(statement, scope);
           }
       }
       if (funcDclrIdxs.length) {
@@ -2893,7 +1591,7 @@
           block.body = funcDclrList.concat(block.body);
       }
   }
-  function hoistVarRecursion$1(statement, scope) {
+  function hoistVarRecursion(statement, scope) {
       switch (statement.type) {
           case 'VariableDeclaration':
               VariableDeclaration(statement, scope, { hoist: true });
@@ -2909,48 +1607,48 @@
               }
           case 'WhileStatement':
           case 'DoWhileStatement':
-              hoistVarRecursion$1(statement.body, scope);
+              hoistVarRecursion(statement.body, scope);
               break;
           case 'IfStatement':
-              hoistVarRecursion$1(statement.consequent, scope);
+              hoistVarRecursion(statement.consequent, scope);
               if (statement.alternate) {
-                  hoistVarRecursion$1(statement.alternate, scope);
+                  hoistVarRecursion(statement.alternate, scope);
               }
               break;
           case 'BlockStatement':
               for (let i = 0; i < statement.body.length; i++) {
-                  hoistVarRecursion$1(statement.body[i], scope);
+                  hoistVarRecursion(statement.body[i], scope);
               }
               break;
           case 'SwitchStatement':
               for (let i = 0; i < statement.cases.length; i++) {
                   for (let j = 0; j < statement.cases[i].consequent.length; j++) {
-                      hoistVarRecursion$1(statement.cases[i].consequent[j], scope);
+                      hoistVarRecursion(statement.cases[i].consequent[j], scope);
                   }
               }
               break;
           case 'TryStatement': {
               const tryBlock = statement.block.body;
               for (let i = 0; i < tryBlock.length; i++) {
-                  hoistVarRecursion$1(tryBlock[i], scope);
+                  hoistVarRecursion(tryBlock[i], scope);
               }
               const catchBlock = statement.handler && statement.handler.body.body;
               if (catchBlock) {
                   for (let i = 0; i < catchBlock.length; i++) {
-                      hoistVarRecursion$1(catchBlock[i], scope);
+                      hoistVarRecursion(catchBlock[i], scope);
                   }
               }
               const finalBlock = statement.finalizer && statement.finalizer.body;
               if (finalBlock) {
                   for (let i = 0; i < finalBlock.length; i++) {
-                      hoistVarRecursion$1(finalBlock[i], scope);
+                      hoistVarRecursion(finalBlock[i], scope);
                   }
               }
               break;
           }
       }
   }
-  function pattern$3(node, scope, options = {}) {
+  function pattern$1(node, scope, options = {}) {
       switch (node.type) {
           case 'ObjectPattern':
               return ObjectPattern(node, scope, options);
@@ -2964,8 +1662,8 @@
               throw new SyntaxError('Unexpected token');
       }
   }
-  function createFunc$1(node, scope, options = {}) {
-      if (node.generator || node.async) {
+  function createFunc(node, scope, options = {}) {
+      if (!node.generator && !node.async) {
           return createFunc(node, scope, options);
       }
       const { superClass, isCtor } = options;
@@ -2991,12 +1689,12 @@
                   RestElement(param, subScope, { kind: 'var', feed: args.slice(i) });
               }
               else {
-                  pattern$3(param, subScope, { feed: args[i] });
+                  pattern$1(param, subScope, { feed: args[i] });
               }
           }
           let result;
           if (node.body.type === 'BlockStatement') {
-              hoist$1(node.body, subScope);
+              hoist(node.body, subScope);
               result = BlockStatement(node.body, subScope, {
                   invasived: true,
                   hoisted: true
@@ -3029,7 +1727,7 @@
       });
       return func;
   }
-  function createClass$1(node, scope) {
+  function createClass(node, scope) {
       const superClass = evaluate(node.superClass, scope);
       let klass = function () {
           if (superClass) {
@@ -3040,7 +1738,7 @@
       for (let i = 0; i < methodBody.length; i++) {
           const method = methodBody[i];
           if (method.kind === 'constructor') {
-              klass = createFunc$1(method.value, scope, { superClass, isCtor: true });
+              klass = createFunc(method.value, scope, { superClass, isCtor: true });
               break;
           }
       }
@@ -3055,7 +1753,7 @@
       });
       return klass;
   }
-  function ForXHandler$1(node, scope, options) {
+  function ForXHandler(node, scope, options) {
       const { value } = options;
       const left = node.left;
       const subScope = new Scope(scope);
@@ -3067,7 +1765,7 @@
           variable.set(value);
       }
       else {
-          pattern$3(left, scope, { feed: value });
+          pattern$1(left, scope, { feed: value });
       }
       let result;
       if (node.body.type === 'BlockStatement') {
@@ -3078,7 +1776,34 @@
       }
       return result;
   }
+  function needNull2Zero(node, scope) {
+      return scope.null2Zero && node.type === 'MemberExpression' && MemberExpressionResultType(node, scope) == exports.TYPE.NUMBER;
+  }
+  function MemberExpressionResultType(node, scope) {
+      const objectType = scope.objectType;
+      const properties = [node.property];
+      let curNode = node;
+      while (curNode.object.type === 'MemberExpression') {
+          curNode = curNode.object;
+          properties.unshift(curNode.property);
+      }
+      return properties.reduce((pre, cur, index) => {
+          return pre && pre[cur.name];
+      }, objectType);
+  }
+  function FunctionArgType(name, argIndex, scope) {
+      var _a, _b;
+      const funcTypeMap = scope.funcTypeMap;
+      return (_b = (_a = funcTypeMap[name]) === null || _a === void 0 ? void 0 : _a.argsType(argIndex)) !== null && _b !== void 0 ? _b : exports.TYPE.ANY;
+  }
 
+  (function (TYPE) {
+      TYPE[TYPE["ANY"] = 0] = "ANY";
+      TYPE[TYPE["STRING"] = 1] = "STRING";
+      TYPE[TYPE["NUMBER"] = 2] = "NUMBER";
+      TYPE[TYPE["BOOLEAN"] = 3] = "BOOLEAN";
+      TYPE[TYPE["DATETIME"] = 4] = "DATETIME";
+  })(exports.TYPE || (exports.TYPE = {}));
   class Sval {
       constructor(options = {}) {
           this.options = {};
@@ -3121,15 +1846,19 @@
           }
           return acorn.parse(code, this.options);
       }
-      run(code, { null2Zero = false } = {}) {
+      run(code, { null2Zero = false, funcTypeMap, objectType } = {}) {
           this.scope.null2Zero = null2Zero;
+          this.scope.funcTypeMap = funcTypeMap;
+          this.scope.objectType = objectType;
           const ast = typeof code === 'string' ? acorn.parse(code, this.options) : code;
-          hoist$1(ast, this.scope);
+          hoist(ast, this.scope);
           evaluate(ast, this.scope);
       }
   }
   Sval.version = version;
 
-  return Sval;
+  exports.default = Sval;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
