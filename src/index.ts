@@ -27,10 +27,6 @@ export interface FunctionTypeMap {
   [name: string]: FunctionType
 }
 
-export interface ObjectType {
-  [key: string]: TYPE | ObjectType,
-}
-
 export interface SvalOptions {
   ecmaVer?: 3 | 5 | 6 | 7 | 8 | 9 | 10 | 2015 | 2016 | 2017 | 2018 | 2019
   sandBox?: boolean
@@ -40,7 +36,6 @@ export interface SvalOptions {
 
 export interface RunOption {
   null2Zero?: boolean;
-  objectType?: ObjectType;
   funcTypeMap?: FunctionTypeMap;
 }
 
@@ -101,10 +96,9 @@ class Sval {
     return parse(code, this.options)
   }
 
-  run(code: string | Node, { null2Zero = false, funcTypeMap, objectType }: RunOption = {}) {
+  run(code: string | Node, { null2Zero = false, funcTypeMap }: RunOption = {}) {
     this.scope.null2Zero = null2Zero;
     this.scope.funcTypeMap = funcTypeMap;
-    this.scope.objectType = objectType;
     const ast = typeof code === 'string' ? parse(code, this.options) as Node : code
     hoist(ast as Program, this.scope)
     evaluate(ast, this.scope)

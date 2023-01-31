@@ -7,6 +7,7 @@ import { Literal } from './literal'
 import * as estree from 'estree'
 import Scope from '../scope'
 import evaluate from '.'
+import { TYPE } from "../index";
 
 export function* ThisExpression(node: estree.ThisExpression, scope: Scope) {
   const superCall = scope.find(SUPERCALL)
@@ -360,8 +361,11 @@ export function* CallExpression(node: estree.CallExpression, scope: Scope) {
       args = args.concat(yield* SpreadElement(arg, scope))
     } else {
       let param = yield* evaluate(arg, scope);
-      if (needNull2Zero(arg, scope) && FunctionArgType(func.name, i, scope)) {
+      const paramType = FunctionArgType(func.name, i, scope)
+      if (paramType === TYPE.NUMBER && needNull2Zero(arg, scope)  ) {
         param = param ?? 0;
+      } else if (paramType === TYPE.STRING && param){
+        param = param.toString();
       }
       args.push(param)
     }

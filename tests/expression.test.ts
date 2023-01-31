@@ -50,22 +50,15 @@ describe('testing src/expression.ts', () => {
     const interpreter = new Sval({ nullSafe: true })
 
     const bizData: any = { field3: {}, field1: null, field2: null };
-    const objectType = {
-      field3: { field3: TYPE.NUMBER },
-      field1: TYPE.NUMBER,
-      field2: TYPE.STRING,
-    };
     interpreter.import({ bizData });
     interpreter.run(`
       exports.a = bizData.field3.field3 + 5
       exports.b = bizData.field1 + 5
       exports.c = bizData.field1
-      exports.d = bizData.field2 + 5
-    `, { null2Zero: true, objectType });
+    `, { null2Zero: true });
     expect(interpreter.exports.a).toEqual(5);
     expect(interpreter.exports.b).toEqual(5);
     expect(interpreter.exports.c).toEqual(0);
-    expect(interpreter.exports.d).toEqual(null);
 
     interpreter.run(`
       exports.a = bizData.field3.field3 + 5
@@ -81,7 +74,6 @@ describe('testing src/expression.ts', () => {
     const interpreter = new Sval({ nullSafe: true })
 
     const bizData: any = { field1: null, field2: true }
-    const objectType = { field1: TYPE.NUMBER, field2: TYPE.BOOLEAN }
     interpreter.import({ bizData })
     interpreter.import(funcMap);
     interpreter.run(`
@@ -89,7 +81,7 @@ describe('testing src/expression.ts', () => {
       exports.b = ABS(bizData.field1) + 1;
       exports.c = ABS(FirstNotNull(bizData.field1));
       exports.d = ABS(IF(bizData.field2, bizData.field3, bizData.field3 + 1));
-    `, { null2Zero: true, objectType, funcTypeMap: FuncTypeMap })
+    `, { null2Zero: true, funcTypeMap: FuncTypeMap })
 
     expect(interpreter.exports.a).toEqual(0)
     expect(interpreter.exports.b).toEqual(1)
