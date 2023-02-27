@@ -31,7 +31,7 @@
   },
   "homepage": "https://github.com/Siubaak/sval#readme",
   "dependencies": {
-    "acorn": "^6.4.1"
+    "acorn": "^7.4.0"
   },
   "devDependencies": {
     "@types/acorn": "^4.0.5",
