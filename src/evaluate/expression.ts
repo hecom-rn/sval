@@ -179,7 +179,9 @@ export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
     case '-': return left - right
     case '*': return left * right
     case '**': return left ** right
-    case '/': return left / right
+    case '/':
+      if(right == 0) return NaN
+      return left / right
     case '%': return left % right
     case '|': return left | right
     case '^': return left ^ right

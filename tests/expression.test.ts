@@ -69,6 +69,16 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.b).toEqual(null);
     expect(interpreter.exports.c).toEqual(null);
   })
+  it('null2Zero in /0', () => {
+    const interpreter = new Sval({ nullSafe: true })
+
+    const bizData: any = { field1: 2, field2: 2 };
+    interpreter.import({ bizData });
+    interpreter.run(`
+      exports.a = bizData.field1 * 2 / (bizData.field2 / bizData.field3) + 1
+    `, { null2Zero: true });
+    expect(interpreter.exports.a).toEqual(null);
+  })
 
   it('null2Zero in Function', () => {
     const interpreter = new Sval({ nullSafe: true })
