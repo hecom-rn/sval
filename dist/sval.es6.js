@@ -756,7 +756,10 @@
           case '-': return left - right;
           case '*': return left * right;
           case '**': return Math.pow(left, right);
-          case '/': return left / right;
+          case '/':
+              if (right == 0)
+                  return NaN;
+              return left / right;
           case '%': return left % right;
           case '|': return left | right;
           case '^': return left ^ right;
@@ -767,11 +770,7 @@
       }
   }
   function AssignmentExpression(node, scope) {
-      let value = evaluate(node.right, scope);
-      if (needNull2Zero$1(node.right, scope)) {
-          value = value !== null && value !== void 0 ? value : 0;
-      }
-      value = value !== value ? null : value;
+      const value = evaluate(node.right, scope);
       const left = node.left;
       let variable;
       if (left.type === 'Identifier') {
@@ -1785,7 +1784,10 @@
           case '-': return left - right;
           case '*': return left * right;
           case '**': return Math.pow(left, right);
-          case '/': return left / right;
+          case '/':
+              if (right == 0)
+                  return NaN;
+              return left / right;
           case '%': return left % right;
           case '|': return left | right;
           case '^': return left ^ right;
@@ -1796,11 +1798,7 @@
       }
   }
   function* AssignmentExpression$1(node, scope) {
-      let value = yield* evaluate$1(node.right, scope);
-      if (needNull2Zero(node.right, scope)) {
-          value = value !== null && value !== void 0 ? value : 0;
-      }
-      value = value !== value ? null : value;
+      const value = yield* evaluate$1(node.right, scope);
       const left = node.left;
       let variable;
       if (left.type === 'Identifier') {

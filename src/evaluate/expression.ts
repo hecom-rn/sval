@@ -194,11 +194,8 @@ export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
 }
 
 export function* AssignmentExpression(node: estree.AssignmentExpression, scope: Scope) {
-  let value = yield* evaluate(node.right, scope)
-  if (needNull2Zero(node.right, scope)) {
-    value = value ?? 0;
-  }
-  value = value !== value ? null : value;
+  const value = yield* evaluate(node.right, scope)
+
   const left = node.left
 
   let variable: Variable
