@@ -1,3 +1,4 @@
+import { Parser } from 'acorn';
 import { Node, Program } from 'estree';
 import { OperatorHandle } from './scope';
 export { OperatorHandle };
@@ -36,6 +37,7 @@ declare class Sval {
     exports: {
         [name: string]: any;
     };
+    parser: typeof Parser;
     constructor(options?: SvalOptions);
     import(nameOrModules: string | {
         [name: string]: any;

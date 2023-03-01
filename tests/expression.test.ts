@@ -110,6 +110,26 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.d).toEqual(null)
   })
 
+  it('^ 改为幂运算符',()=>{
+    const interpreter = new Sval({ nullSafe: true })
+    const bizData: any = { };
+    interpreter.import({ bizData });
+    interpreter.run(`
+      exports.a = bizData.field1 ^ bizData.field2 + 1
+    `, { null2Zero: true });
+    expect(interpreter.exports.a).toEqual(2);
+    bizData.field1 = 2;bizData.field2 = 2
+    interpreter.import({ bizData });
+    interpreter.run(`
+      exports.a = bizData.field1 ^ bizData.field2 + 1
+    `, { null2Zero: true });
+    expect(interpreter.exports.a).toEqual(5);
+    interpreter.run(`
+      exports.a = 2 * 3 ^ 2 / 3
+    `, { null2Zero: true });
+    expect(interpreter.exports.a).toEqual(6);
+  })
+
   it('should call expression run normally', () => {
     const interpreter = new Sval()
 
@@ -199,7 +219,8 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.k).toBe(0)
     expect(interpreter.exports.l).toBe(3)
     expect(interpreter.exports.m).toBe(0)
-    expect(interpreter.exports.n).toBe(0)
+    // ^ 改为幂运算符
+    expect(interpreter.exports.n).toBe(1)
     // calculate
     expect(interpreter.exports.o).toBe(2)
     expect(interpreter.exports.p).toBe(0)

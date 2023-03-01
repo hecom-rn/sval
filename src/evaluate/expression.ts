@@ -184,7 +184,7 @@ export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
       return left / right
     case '%': return left % right
     case '|': return left | right
-    case '^': return left ^ right
+    case '^': return left ** right
     case '&': return left & right
     case 'in': return left in right
     case 'instanceof': return left instanceof right

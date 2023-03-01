@@ -762,7 +762,7 @@
               return left / right;
           case '%': return left % right;
           case '|': return left | right;
-          case '^': return left ^ right;
+          case '^': return Math.pow(left, right);
           case '&': return left & right;
           case 'in': return left in right;
           case 'instanceof': return left instanceof right;
@@ -1790,7 +1790,7 @@
               return left / right;
           case '%': return left % right;
           case '|': return left | right;
-          case '^': return left ^ right;
+          case '^': return Math.pow(left, right);
           case '&': return left & right;
           case 'in': return left in right;
           case 'instanceof': return left instanceof right;
@@ -3136,6 +3136,10 @@
       TYPE[TYPE["BOOLEAN"] = 3] = "BOOLEAN";
       TYPE[TYPE["DATETIME"] = 4] = "DATETIME";
   })(exports.TYPE || (exports.TYPE = {}));
+  function customParser(BaseParser) {
+      BaseParser.acorn.tokTypes.bitwiseXOR.binop = 11;
+      return BaseParser;
+  }
   class Sval {
       constructor(options = {}) {
           this.options = {};
@@ -3159,6 +3163,7 @@
           this.scope.const('exports', this.exports = {});
           operatorHandle.forEach(item => this.scope.addOperator(item.name, item.handle));
           this.scope.nullSafe = nullSafe;
+          this.parser = acorn.Parser.extend(customParser);
       }
       import(nameOrModules, mod) {
           if (typeof nameOrModules === 'string') {
@@ -3176,12 +3181,12 @@
           if (typeof parser === 'function') {
               return parser(code, assign({}, this.options));
           }
-          return acorn.parse(code, this.options);
+          return this.parser.parse(code, this.options);
       }
       run(code, { null2Zero = false, funcTypeMap } = {}) {
           this.scope.null2Zero = null2Zero;
           this.scope.funcTypeMap = funcTypeMap;
-          const ast = typeof code === 'string' ? acorn.parse(code, this.options) : code;
+          const ast = typeof code === 'string' ? this.parser.parse(code, this.options) : code;
           hoist$1(ast, this.scope);
           evaluate(ast, this.scope);
       }

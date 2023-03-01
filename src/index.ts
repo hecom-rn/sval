@@ -1,6 +1,6 @@
 import { getOwnNames, createSandBox, globalObj, assign } from './share/util'
 import { version } from '../package.json'
-import { parse, Options } from 'acorn'
+import { Options, Parser } from 'acorn'
 import { Node, Program } from 'estree'
 import Scope, { OperatorHandle } from './scope'
 
@@ -39,6 +39,12 @@ export interface RunOption {
   funcTypeMap?: FunctionTypeMap;
 }
 
+function customParser(BaseParser: typeof Parser):typeof Parser {
+  // @ts-ignore
+  BaseParser.acorn.tokTypes.bitwiseXOR.binop = 11
+  return BaseParser;
+}
+
 class Sval {
   static version: string = version
 
@@ -46,6 +52,8 @@ class Sval {
   private scope = new Scope(null, true)
 
   exports: { [name: string]: any } = {}
+
+  parser:typeof Parser;
 
   constructor(options: SvalOptions = {}) {
     let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe = false } = options
@@ -71,7 +79,8 @@ class Sval {
     this.scope.const('exports', this.exports = {})
 
     operatorHandle.forEach(item => this.scope.addOperator(item.name, item.handle))
-    this.scope.nullSafe = nullSafe
+    this.scope.nullSafe = nullSafe;
+    this.parser = Parser.extend(customParser);
   }
 
   import(nameOrModules: string | { [name: string]: any }, mod?: any) {
@@ -93,13 +102,13 @@ class Sval {
     if (typeof parser === 'function') {
       return parser(code, assign({}, this.options))
     }
-    return parse(code, this.options)
+    return this.parser.parse(code, this.options)
   }
 
   run(code: string | Node, { null2Zero = false, funcTypeMap }: RunOption = {}) {
     this.scope.null2Zero = null2Zero;
     this.scope.funcTypeMap = funcTypeMap;
-    const ast = typeof code === 'string' ? parse(code, this.options) as Node : code
+    const ast = typeof code === 'string' ? this.parser.parse(code, this.options) as Node : code
     hoist(ast as Program, this.scope)
     evaluate(ast, this.scope)
   }

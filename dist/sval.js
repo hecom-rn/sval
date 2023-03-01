@@ -846,7 +846,7 @@
               return left / right;
           case '%': return left % right;
           case '|': return left | right;
-          case '^': return left ^ right;
+          case '^': return Math.pow(left, right);
           case '&': return left & right;
           case 'in': return left in right;
           case 'instanceof': return left instanceof right;
@@ -1982,7 +1982,7 @@
                           return [2, left / right];
                       case '%': return [2, left % right];
                       case '|': return [2, left | right];
-                      case '^': return [2, left ^ right];
+                      case '^': return [2, Math.pow(left, right)];
                       case '&': return [2, left & right];
                       case 'in': return [2, left in right];
                       case 'instanceof': return [2, left instanceof right];
@@ -4059,6 +4059,10 @@
       TYPE[TYPE["BOOLEAN"] = 3] = "BOOLEAN";
       TYPE[TYPE["DATETIME"] = 4] = "DATETIME";
   })(exports.TYPE || (exports.TYPE = {}));
+  function customParser(BaseParser) {
+      BaseParser.acorn.tokTypes.bitwiseXOR.binop = 11;
+      return BaseParser;
+  }
   var Sval = (function () {
       function Sval(options) {
           var _this = this;
@@ -4084,6 +4088,7 @@
           this.scope.const('exports', this.exports = {});
           operatorHandle.forEach(function (item) { return _this.scope.addOperator(item.name, item.handle); });
           this.scope.nullSafe = nullSafe;
+          this.parser = acorn.Parser.extend(customParser);
       }
       Sval.prototype.import = function (nameOrModules, mod) {
           var _a;
@@ -4102,13 +4107,13 @@
           if (typeof parser === 'function') {
               return parser(code, assign({}, this.options));
           }
-          return acorn.parse(code, this.options);
+          return this.parser.parse(code, this.options);
       };
       Sval.prototype.run = function (code, _a) {
           var _b = _a === void 0 ? {} : _a, _c = _b.null2Zero, null2Zero = _c === void 0 ? false : _c, funcTypeMap = _b.funcTypeMap;
           this.scope.null2Zero = null2Zero;
           this.scope.funcTypeMap = funcTypeMap;
-          var ast = typeof code === 'string' ? acorn.parse(code, this.options) : code;
+          var ast = typeof code === 'string' ? this.parser.parse(code, this.options) : code;
           hoist$1(ast, this.scope);
           evaluate(ast, this.scope);
       };
