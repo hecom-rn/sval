@@ -855,6 +855,10 @@
   }
   function AssignmentExpression(node, scope) {
       var value = evaluate(node.right, scope);
+      if (needNull2Zero$1(node.right, scope)) {
+          value = value !== null && value !== void 0 ? value : 0;
+      }
+      value = value !== value ? null : value;
       var left = node.left;
       var variable;
       if (left.type === 'Identifier') {
@@ -1998,6 +2002,10 @@
               case 0: return [5, __values(evaluate$1(node.right, scope))];
               case 1:
                   value = _a.sent();
+                  if (needNull2Zero(node.right, scope)) {
+                      value = value !== null && value !== void 0 ? value : 0;
+                  }
+                  value = value !== value ? null : value;
                   left = node.left;
                   if (!(left.type === 'Identifier')) return [3, 3];
                   return [5, __values(Identifier$1(left, scope, { getVar: true, throwErr: false }))];

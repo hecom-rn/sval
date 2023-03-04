@@ -58,15 +58,15 @@ describe('testing src/expression.ts', () => {
     `, { null2Zero: true });
     expect(interpreter.exports.a).toEqual(5);
     expect(interpreter.exports.b).toEqual(5);
-    expect(interpreter.exports.c).toEqual(null);
+    expect(interpreter.exports.c).toEqual(0);
 
     interpreter.run(`
       exports.a = bizData.field3.field3 + 5
       exports.b = bizData.field1 + 5
       exports.c = bizData.field1
     `);
-    expect(interpreter.exports.a).toBeNaN();
-    expect(interpreter.exports.b).toBeNaN();
+    expect(interpreter.exports.a).toEqual(null);
+    expect(interpreter.exports.b).toEqual(null);
     expect(interpreter.exports.c).toEqual(null);
   })
   it('null2Zero in /0', () => {
@@ -77,7 +77,7 @@ describe('testing src/expression.ts', () => {
     interpreter.run(`
       exports.a = bizData.field1 * 2 / (bizData.field2 / bizData.field3) + 1
     `, { null2Zero: true });
-    expect(interpreter.exports.a).toBeNaN();
+    expect(interpreter.exports.a).toEqual(null)
   })
 
   it('null2Zero in Function', () => {
@@ -105,7 +105,7 @@ describe('testing src/expression.ts', () => {
     `)
 
     expect(interpreter.exports.a).toEqual(null)
-    expect(interpreter.exports.b).toBeNaN()
+    expect(interpreter.exports.b).toEqual(null)
     expect(interpreter.exports.c).toEqual(null)
     expect(interpreter.exports.d).toEqual(null)
   })

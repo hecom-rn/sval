@@ -770,7 +770,11 @@
       }
   }
   function AssignmentExpression(node, scope) {
-      const value = evaluate(node.right, scope);
+      let value = evaluate(node.right, scope);
+      if (needNull2Zero$1(node.right, scope)) {
+          value = value !== null && value !== void 0 ? value : 0;
+      }
+      value = value !== value ? null : value;
       const left = node.left;
       let variable;
       if (left.type === 'Identifier') {
@@ -1798,7 +1802,11 @@
       }
   }
   function* AssignmentExpression$1(node, scope) {
-      const value = yield* evaluate$1(node.right, scope);
+      let value = yield* evaluate$1(node.right, scope);
+      if (needNull2Zero(node.right, scope)) {
+          value = value !== null && value !== void 0 ? value : 0;
+      }
+      value = value !== value ? null : value;
       const left = node.left;
       let variable;
       if (left.type === 'Identifier') {
