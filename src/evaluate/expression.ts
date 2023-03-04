@@ -195,7 +195,7 @@ export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
 
 export function* AssignmentExpression(node: estree.AssignmentExpression, scope: Scope) {
   let value = yield* evaluate(node.right, scope)
-  if (needNull2Zero(node.right, scope)) {
+  if (scope.null2ZeroOnAssignment && needNull2Zero(node.right, scope)) {
     value = value ?? 0;
   }
   value = value !== value ? null : value;

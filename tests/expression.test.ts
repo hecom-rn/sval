@@ -58,6 +58,15 @@ describe('testing src/expression.ts', () => {
     `, { null2Zero: true });
     expect(interpreter.exports.a).toEqual(5);
     expect(interpreter.exports.b).toEqual(5);
+    expect(interpreter.exports.c).toEqual(null);
+
+    interpreter.run(`
+      exports.a = bizData.field3.field3 + 5
+      exports.b = bizData.field1 + 5
+      exports.c = bizData.field1
+    `, { null2Zero: true, null2ZeroOnAssignment: true });
+    expect(interpreter.exports.a).toEqual(5);
+    expect(interpreter.exports.b).toEqual(5);
     expect(interpreter.exports.c).toEqual(0);
 
     interpreter.run(`

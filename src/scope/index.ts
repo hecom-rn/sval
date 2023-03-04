@@ -41,6 +41,8 @@ export default class Scope {
   public nullSafe: boolean = false
 
   public null2Zero: boolean = false
+
+  public null2ZeroOnAssignment: boolean = false
   public funcTypeMap: FunctionTypeMap;
 
   /**

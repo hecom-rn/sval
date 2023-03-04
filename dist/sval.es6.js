@@ -437,6 +437,7 @@
           this.operator = create(null);
           this.nullSafe = false;
           this.null2Zero = false;
+          this.null2ZeroOnAssignment = false;
           this.parent = parent;
           this.isolated = isolated;
       }
@@ -771,7 +772,7 @@
   }
   function AssignmentExpression(node, scope) {
       let value = evaluate(node.right, scope);
-      if (needNull2Zero$1(node.right, scope)) {
+      if (scope.null2ZeroOnAssignment && needNull2Zero$1(node.right, scope)) {
           value = value !== null && value !== void 0 ? value : 0;
       }
       value = value !== value ? null : value;
@@ -1803,7 +1804,7 @@
   }
   function* AssignmentExpression$1(node, scope) {
       let value = yield* evaluate$1(node.right, scope);
-      if (needNull2Zero(node.right, scope)) {
+      if (scope.null2ZeroOnAssignment && needNull2Zero(node.right, scope)) {
           value = value !== null && value !== void 0 ? value : 0;
       }
       value = value !== value ? null : value;
@@ -3191,9 +3192,10 @@
           }
           return this.parser.parse(code, this.options);
       }
-      run(code, { null2Zero = false, funcTypeMap } = {}) {
+      run(code, { null2Zero = false, funcTypeMap, null2ZeroOnAssignment = false } = {}) {
           this.scope.null2Zero = null2Zero;
           this.scope.funcTypeMap = funcTypeMap;
+          this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
           const ast = typeof code === 'string' ? this.parser.parse(code, this.options) : code;
           hoist$1(ast, this.scope);
           evaluate(ast, this.scope);

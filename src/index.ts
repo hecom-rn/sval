@@ -37,6 +37,8 @@ export interface SvalOptions {
 export interface RunOption {
   null2Zero?: boolean;
   funcTypeMap?: FunctionTypeMap;
+
+  null2ZeroOnAssignment?: boolean;
 }
 
 function customParser(BaseParser: typeof Parser):typeof Parser {
@@ -105,9 +107,10 @@ class Sval {
     return this.parser.parse(code, this.options)
   }
 
-  run(code: string | Node, { null2Zero = false, funcTypeMap }: RunOption = {}) {
+  run(code: string | Node, { null2Zero = false, funcTypeMap, null2ZeroOnAssignment = false }: RunOption = {}) {
     this.scope.null2Zero = null2Zero;
     this.scope.funcTypeMap = funcTypeMap;
+    this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
     const ast = typeof code === 'string' ? this.parser.parse(code, this.options) as Node : code
     hoist(ast as Program, this.scope)
     evaluate(ast, this.scope)

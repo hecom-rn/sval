@@ -442,6 +442,7 @@
           this.operator = create(null);
           this.nullSafe = false;
           this.null2Zero = false;
+          this.null2ZeroOnAssignment = false;
           this.parent = parent;
           this.isolated = isolated;
       }
@@ -855,7 +856,7 @@
   }
   function AssignmentExpression(node, scope) {
       var value = evaluate(node.right, scope);
-      if (needNull2Zero$1(node.right, scope)) {
+      if (scope.null2ZeroOnAssignment && needNull2Zero$1(node.right, scope)) {
           value = value !== null && value !== void 0 ? value : 0;
       }
       value = value !== value ? null : value;
@@ -2002,7 +2003,7 @@
               case 0: return [5, __values(evaluate$1(node.right, scope))];
               case 1:
                   value = _a.sent();
-                  if (needNull2Zero(node.right, scope)) {
+                  if (scope.null2ZeroOnAssignment && needNull2Zero(node.right, scope)) {
                       value = value !== null && value !== void 0 ? value : 0;
                   }
                   value = value !== value ? null : value;
@@ -4118,9 +4119,10 @@
           return this.parser.parse(code, this.options);
       };
       Sval.prototype.run = function (code, _a) {
-          var _b = _a === void 0 ? {} : _a, _c = _b.null2Zero, null2Zero = _c === void 0 ? false : _c, funcTypeMap = _b.funcTypeMap;
+          var _b = _a === void 0 ? {} : _a, _c = _b.null2Zero, null2Zero = _c === void 0 ? false : _c, funcTypeMap = _b.funcTypeMap, _d = _b.null2ZeroOnAssignment, null2ZeroOnAssignment = _d === void 0 ? false : _d;
           this.scope.null2Zero = null2Zero;
           this.scope.funcTypeMap = funcTypeMap;
+          this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
           var ast = typeof code === 'string' ? this.parser.parse(code, this.options) : code;
           hoist$1(ast, this.scope);
           evaluate(ast, this.scope);
