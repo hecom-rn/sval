@@ -443,6 +443,7 @@
           this.nullSafe = false;
           this.null2Zero = false;
           this.null2ZeroOnAssignment = false;
+          this.isNumberField = function () { return true; };
           this.parent = parent;
           this.isolated = isolated;
       }
@@ -811,6 +812,11 @@
   function BinaryExpression(node, scope) {
       var left = evaluate(node.left, scope);
       var right = evaluate(node.right, scope);
+      if (node.operator === '+' && isStringConcat$1(left, right, node, scope)) {
+          left = (left !== null && left !== void 0 ? left : '').toString();
+          right = (right !== null && right !== void 0 ? right : '').toString();
+          return left + right;
+      }
       if (scope.null2Zero) {
           if (needNull2Zero$1(node.left, scope)) {
               left = left !== null && left !== void 0 ? left : 0;
@@ -1951,6 +1957,11 @@
                   return [5, __values(evaluate$1(node.right, scope))];
               case 2:
                   right = _a.sent();
+                  if (node.operator === '+' && isStringConcat(left, right, node, scope)) {
+                      left = (left !== null && left !== void 0 ? left : '').toString();
+                      right = (right !== null && right !== void 0 ? right : '').toString();
+                      return [2, left + right];
+                  }
                   if (scope.null2Zero) {
                       if (needNull2Zero(node.left, scope)) {
                           left = left !== null && left !== void 0 ? left : 0;
@@ -3828,6 +3839,17 @@
   function needNull2Zero(node, scope) {
       return scope.null2Zero && node.type === 'MemberExpression';
   }
+  function isStringConcat(leftValue, rightValue, node, scope) {
+      var isLeftNumber = typeof leftValue === 'number' || isNumberField(node.left, scope) || isNullType(leftValue, node.left);
+      var isRightNumber = typeof rightValue === 'number' || isNumberField(node.right, scope) || isNullType(rightValue, node.right);
+      return !isLeftNumber || !isRightNumber;
+  }
+  function isNullType(value, node) {
+      return value == null && node.type != 'MemberExpression';
+  }
+  function isNumberField(node, scope) {
+      return node.type === 'MemberExpression' && scope.isNumberField && scope.isNumberField(node, scope);
+  }
   function FunctionArgType(name, argIndex, scope) {
       var _a, _b;
       var funcTypeMap = scope.funcTypeMap;
@@ -4055,6 +4077,17 @@
   function needNull2Zero$1(node, scope) {
       return scope.null2Zero && node.type === 'MemberExpression';
   }
+  function isStringConcat$1(leftValue, rightValue, node, scope) {
+      var isLeftNumber = typeof leftValue === 'number' || isNumberField$1(node.left, scope) || isNullType$1(leftValue, node.left);
+      var isRightNumber = typeof rightValue === 'number' || isNumberField$1(node.right, scope) || isNullType$1(rightValue, node.right);
+      return !isLeftNumber || !isRightNumber;
+  }
+  function isNullType$1(value, node) {
+      return value == null && node.type != 'MemberExpression';
+  }
+  function isNumberField$1(node, scope) {
+      return node.type === 'MemberExpression' && scope.isNumberField && scope.isNumberField(node, scope);
+  }
   function FunctionArgType$1(name, argIndex, scope) {
       var _a, _b;
       var funcTypeMap = scope.funcTypeMap;
@@ -4079,7 +4112,7 @@
           this.options = {};
           this.scope = new Scope(null, true);
           this.exports = {};
-          var _a = options.ecmaVer, ecmaVer = _a === void 0 ? 9 : _a, _b = options.sandBox, sandBox = _b === void 0 ? true : _b, _c = options.operatorHandle, operatorHandle = _c === void 0 ? [] : _c, _d = options.nullSafe, nullSafe = _d === void 0 ? false : _d;
+          var _a = options.ecmaVer, ecmaVer = _a === void 0 ? 9 : _a, _b = options.sandBox, sandBox = _b === void 0 ? true : _b, _c = options.operatorHandle, operatorHandle = _c === void 0 ? [] : _c, _d = options.nullSafe, nullSafe = _d === void 0 ? false : _d, funcTypeMap = options.funcTypeMap, isNumberField = options.isNumberField;
           ecmaVer -= ecmaVer < 2015 ? 0 : 2009;
           if ([3, 5, 6, 7, 8, 9, 10].indexOf(ecmaVer) === -1) {
               throw new Error("unsupported ecmaVer");
@@ -4097,6 +4130,8 @@
           this.scope.const('exports', this.exports = {});
           operatorHandle.forEach(function (item) { return _this.scope.addOperator(item.name, item.handle); });
           this.scope.nullSafe = nullSafe;
+          this.scope.funcTypeMap = funcTypeMap;
+          isNumberField && (this.scope.isNumberField = isNumberField);
           this.parser = acorn.Parser.extend(customParser);
       }
       Sval.prototype.import = function (nameOrModules, mod) {
@@ -4121,7 +4156,7 @@
       Sval.prototype.run = function (code, _a) {
           var _b = _a === void 0 ? {} : _a, _c = _b.null2Zero, null2Zero = _c === void 0 ? false : _c, funcTypeMap = _b.funcTypeMap, _d = _b.null2ZeroOnAssignment, null2ZeroOnAssignment = _d === void 0 ? false : _d;
           this.scope.null2Zero = null2Zero;
-          this.scope.funcTypeMap = funcTypeMap;
+          funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
           this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
           var ast = typeof code === 'string' ? this.parser.parse(code, this.options) : code;
           hoist$1(ast, this.scope);
