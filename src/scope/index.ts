@@ -2,9 +2,10 @@ import { NOINIT, DEADZONE } from '../share/const'
 import { Variable, Var, Prop } from './variable'
 import { create, define } from '../share/util'
 import { FunctionTypeMap } from "../index";
+import { Expression } from "estree";
 
 export interface OperatorHandle {
-    (...args:any[]):any
+  (...args: any[]): any
 }
 
 /**
@@ -32,11 +33,11 @@ export default class Scope {
    */
   private readonly context: { [key: string]: Var } = create(null)
 
-    /**
-     * Operator overload object
-     * @private
-     */
-  private readonly operator: {[operator:string]: OperatorHandle} = create(null)
+  /**
+   * Operator overload object
+   * @private
+   */
+  private readonly operator: { [operator: string]: OperatorHandle } = create(null)
 
   public nullSafe: boolean = false
 
@@ -44,6 +45,8 @@ export default class Scope {
 
   public null2ZeroOnAssignment: boolean = false
   public funcTypeMap: FunctionTypeMap;
+
+  public isNumberField: (node: Expression, scope: Scope) => boolean = () => true;
 
   /**
    * Create a simulated scope
@@ -63,7 +66,7 @@ export default class Scope {
    */
   global(): Scope {
     let scope: Scope = this
-    while(scope.parent) {
+    while (scope.parent) {
       scope = scope.parent
     }
     return scope
@@ -81,21 +84,21 @@ export default class Scope {
     return cloneScope
   }
 
-  addOperator(operator:string, handle: OperatorHandle){
-      const handleFunc = this.operator[operator]
-      if (!handleFunc) {
-          this.operator[operator] = handle;
-      } else {
-          throw new SyntaxError(`Operator '${operator}' has already been overloaded`)
-      }
+  addOperator(operator: string, handle: OperatorHandle) {
+    const handleFunc = this.operator[operator]
+    if (!handleFunc) {
+      this.operator[operator] = handle;
+    } else {
+      throw new SyntaxError(`Operator '${ operator }' has already been overloaded`)
+    }
   }
 
-  findOperator(operator: string): OperatorHandle{
-      if (this.operator[operator]){
-          return this.operator[operator];
-      } else if (this.parent) {
-          return this.parent.findOperator(operator);
-      }
+  findOperator(operator: string): OperatorHandle {
+    if (this.operator[operator]) {
+      return this.operator[operator];
+    } else if (this.parent) {
+      return this.parent.findOperator(operator);
+    }
   }
 
   /**
@@ -132,7 +135,7 @@ export default class Scope {
     let scope: Scope = this
 
     // Find the closest function scope
-    while(scope.parent && !scope.isolated) {
+    while (scope.parent && !scope.isolated) {
       scope = scope.parent
     }
 
@@ -145,7 +148,7 @@ export default class Scope {
           variable.set(value)
         }
       } else {
-        throw new SyntaxError(`Identifier '${name}' has already been declared`)
+        throw new SyntaxError(`Identifier '${ name }' has already been declared`)
       }
     }
 
@@ -167,7 +170,7 @@ export default class Scope {
     if (!variable || variable.get() === DEADZONE) {
       this.context[name] = new Var('let', value)
     } else {
-      throw new SyntaxError(`Identifier '${name}' has already been declared`)
+      throw new SyntaxError(`Identifier '${ name }' has already been declared`)
     }
   }
 
@@ -181,7 +184,7 @@ export default class Scope {
     if (!variable || variable.get() === DEADZONE) {
       this.context[name] = new Var('const', value)
     } else {
-      throw new SyntaxError(`Identifier '${name}' has already been declared`)
+      throw new SyntaxError(`Identifier '${ name }' has already been declared`)
     }
   }
 
@@ -195,7 +198,7 @@ export default class Scope {
     if (!variable || variable.kind === 'var') {
       this.context[name] = new Var('var', value)
     } else {
-      throw new SyntaxError(`Identifier '${name}' has already been declared`)
+      throw new SyntaxError(`Identifier '${ name }' has already been declared`)
     }
   }
 }

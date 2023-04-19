@@ -307,6 +307,20 @@ export function needNull2Zero(node: estree.Expression, scope: Scope): boolean {
   return scope.null2Zero && node.type === 'MemberExpression';
 }
 
+export function isStringConcat(leftValue: any, rightValue: any, node: estree.BinaryExpression, scope: Scope): boolean {
+  const isLeftNumber = typeof leftValue === 'number' || isNumberField(node.left, scope) || isNullType(leftValue, node.left);
+  const isRightNumber = typeof rightValue === 'number' || isNumberField(node.right, scope) || isNullType(rightValue, node.right);
+  return !isLeftNumber || !isRightNumber
+}
+
+function isNullType(value: any, node: estree.Expression): boolean {
+  return value == null && node.type != 'MemberExpression'
+}
+
+function isNumberField(node: estree.Expression, scope: Scope): boolean {
+  return node.type === 'MemberExpression' && scope.isNumberField && scope.isNumberField(node, scope);
+}
+
 export function FunctionArgType(name: string, argIndex: number, scope: Scope): TYPE {
   const funcTypeMap = scope.funcTypeMap;
   return funcTypeMap?.[name]?.argsType(argIndex) ?? TYPE.ANY;

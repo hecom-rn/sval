@@ -1,6 +1,6 @@
 import { assign, createSymbol, define, freeze, getDptor, getGetter, getSetter, WINDOW } from '../share/util'
 import { AWAIT, CLSCTOR, NEWTARGET, NOCTOR, SUPER, SUPERCALL } from '../share/const'
-import { createClass, createFunc, FunctionArgType, needNull2Zero, pattern } from './helper'
+import { createClass, createFunc, FunctionArgType, isStringConcat, needNull2Zero, pattern } from './helper'
 import { Prop, Variable } from '../scope/variable'
 import { Identifier } from './identifier'
 import { Literal } from './literal'
@@ -149,6 +149,11 @@ export function* UpdateExpression(node: estree.UpdateExpression, scope: Scope) {
 export function* BinaryExpression(node: estree.BinaryExpression, scope: Scope) {
   let left = yield* evaluate(node.left, scope)
   let right = yield* evaluate(node.right, scope)
+  if (node.operator === '+' && isStringConcat(left, right, node, scope)) {
+    left = (left ?? '').toString();
+    right = (right ?? '').toString();
+    return left + right;
+  }
   if (scope.null2Zero) {
     if (needNull2Zero(node.left, scope)) {
       left = left ?? 0;

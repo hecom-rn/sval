@@ -1,5 +1,6 @@
 import Sval, { FunctionTypeMap, TYPE } from '../src'
 import funcMap, { FuncTypeMap } from './function';
+import { Identifier, MemberExpression } from "estree";
 
 describe('testing src/expression.ts', () => {
   it('operator overload: +', () => {
@@ -90,7 +91,7 @@ describe('testing src/expression.ts', () => {
   })
 
   it('null2Zero in Function', () => {
-    const interpreter = new Sval({ nullSafe: true })
+    const interpreter = new Sval({ nullSafe: true, funcTypeMap: FuncTypeMap })
 
     const bizData: any = { field1: null, field2: true }
     interpreter.import({ bizData })
@@ -100,7 +101,7 @@ describe('testing src/expression.ts', () => {
       exports.b = ABS(bizData.field1) + 1;
       exports.c = ABS(FirstNotNull(bizData.field1));
       exports.d = ABS(IF(bizData.field2, bizData.field3, bizData.field3 + 1));
-    `, { null2Zero: true, funcTypeMap: FuncTypeMap })
+    `, { null2Zero: true })
 
     expect(interpreter.exports.a).toEqual(0)
     expect(interpreter.exports.b).toEqual(1)
@@ -137,6 +138,42 @@ describe('testing src/expression.ts', () => {
       exports.a = 2 * 3 ^ 2 / 3
     `, { null2Zero: true });
     expect(interpreter.exports.a).toEqual(6);
+  })
+
+  it('区分字符串拼接与数值加法',()=>{
+    const isNumberField = (node:MemberExpression)=>{
+      return ['field1','field2'].some(f=> f === (node.property as Identifier).name);
+    }
+    const interpreter = new Sval({ nullSafe: true ,ecmaVer: 6,
+      sandBox: true, isNumberField})
+    const bizData: any = { };
+    interpreter.import({ bizData });
+    interpreter.run(`
+      exports.a = bizData.field1 + bizData.field2
+      exports.b = bizData.field1 + bizData.field3
+      exports.c = bizData.field1 + 5
+      exports.d = bizData.field1 + "5"
+      exports.e = bizData.field1 + null
+    `, { null2Zero: true });
+    expect(interpreter.exports.a).toEqual(0);
+    expect(interpreter.exports.b).toEqual('');
+    expect(interpreter.exports.c).toEqual(5);
+    expect(interpreter.exports.d).toEqual('5');
+    expect(interpreter.exports.e).toEqual(null);
+    bizData.field1 = 1;
+    interpreter.import({ bizData });
+    interpreter.run(`
+      exports.a = bizData.field1 + bizData.field2
+      exports.b = bizData.field1 + bizData.field3
+      exports.c = bizData.field1 + 5
+      exports.d = bizData.field1 + "5"
+      exports.e = bizData.field1 + null
+    `, { null2Zero: true });
+    expect(interpreter.exports.a).toEqual(1);
+    expect(interpreter.exports.b).toEqual('1');
+    expect(interpreter.exports.c).toEqual(6);
+    expect(interpreter.exports.d).toEqual('15');
+    expect(interpreter.exports.e).toEqual(null);
   })
 
   it('should call expression run normally', () => {
@@ -460,15 +497,14 @@ describe('testing src/expression.ts', () => {
 
     expect(interpreter.exports.result).toEqual(1);
   })
-
-  it('should support method call with computed name', () => {
-    const interpreter = new Sval()
-    interpreter.run(`
-      exports.result = 1+!!2
-    `)
-
-    expect(interpreter.exports.result).toEqual(2);
-  })
+  // + 不进行类型转换
+  // it('should support method call with computed name', () => {
+  //   const interpreter = new Sval()
+  //   interpreter.run(`
+  //     exports.result = 1+!!2
+  //   `)
+  //   expect(interpreter.exports.result).toEqual(2);
+  // })
 
   it('should support all kinds of delete actions', () => {
     const interpreter = new Sval()

@@ -1,7 +1,7 @@
 import { getOwnNames, createSandBox, globalObj, assign } from './share/util'
 import { version } from '../package.json'
 import { Options, Parser } from 'acorn'
-import { Node, Program } from 'estree'
+import { Expression, MemberExpression, Node, Program } from 'estree'
 import Scope, { OperatorHandle } from './scope'
 
 import { hoist } from './evaluate_n/helper'
@@ -32,6 +32,8 @@ export interface SvalOptions {
   sandBox?: boolean
   operatorHandle?: { name: string, handle: OperatorHandle }[]
   nullSafe?: boolean
+  funcTypeMap?: FunctionTypeMap;
+  isNumberField?: (node: MemberExpression, scope: Scope) => boolean
 }
 
 export interface RunOption {
@@ -41,7 +43,7 @@ export interface RunOption {
   null2ZeroOnAssignment?: boolean;
 }
 
-function customParser(BaseParser: typeof Parser):typeof Parser {
+function customParser(BaseParser: typeof Parser): typeof Parser {
   // @ts-ignore
   BaseParser.acorn.tokTypes.bitwiseXOR.binop = 11
   return BaseParser;
@@ -55,10 +57,10 @@ class Sval {
 
   exports: { [name: string]: any } = {}
 
-  parser:typeof Parser;
+  parser: typeof Parser;
 
   constructor(options: SvalOptions = {}) {
-    let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe = false } = options
+    let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe = false, funcTypeMap, isNumberField } = options
 
     ecmaVer -= ecmaVer < 2015 ? 0 : 2009 // format ecma edition
 
@@ -82,6 +84,8 @@ class Sval {
 
     operatorHandle.forEach(item => this.scope.addOperator(item.name, item.handle))
     this.scope.nullSafe = nullSafe;
+    this.scope.funcTypeMap = funcTypeMap;
+    isNumberField && (this.scope.isNumberField = isNumberField);
     this.parser = Parser.extend(customParser);
   }
 
@@ -109,7 +113,7 @@ class Sval {
 
   run(code: string | Node, { null2Zero = false, funcTypeMap, null2ZeroOnAssignment = false }: RunOption = {}) {
     this.scope.null2Zero = null2Zero;
-    this.scope.funcTypeMap = funcTypeMap;
+    funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
     this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
     const ast = typeof code === 'string' ? this.parser.parse(code, this.options) as Node : code
     hoist(ast as Program, this.scope)
