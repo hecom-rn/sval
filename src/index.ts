@@ -33,13 +33,12 @@ export interface SvalOptions {
   operatorHandle?: { name: string, handle: OperatorHandle }[]
   nullSafe?: boolean
   funcTypeMap?: FunctionTypeMap;
-  isNumberField?: (node: MemberExpression, scope: Scope) => boolean
 }
 
 export interface RunOption {
   null2Zero?: boolean;
   funcTypeMap?: FunctionTypeMap;
-
+  isNumberField?: (fieldNames: string[]) => boolean
   null2ZeroOnAssignment?: boolean;
 }
 
@@ -60,7 +59,7 @@ class Sval {
   parser: typeof Parser;
 
   constructor(options: SvalOptions = {}) {
-    let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe = false, funcTypeMap, isNumberField } = options
+    let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe = false, funcTypeMap } = options
 
     ecmaVer -= ecmaVer < 2015 ? 0 : 2009 // format ecma edition
 
@@ -85,7 +84,6 @@ class Sval {
     operatorHandle.forEach(item => this.scope.addOperator(item.name, item.handle))
     this.scope.nullSafe = nullSafe;
     this.scope.funcTypeMap = funcTypeMap;
-    isNumberField && (this.scope.isNumberField = isNumberField);
     this.parser = Parser.extend(customParser);
   }
 
@@ -111,10 +109,11 @@ class Sval {
     return this.parser.parse(code, this.options)
   }
 
-  run(code: string | Node, { null2Zero = false, funcTypeMap, null2ZeroOnAssignment = false }: RunOption = {}) {
+  run(code: string | Node, { null2Zero = false, funcTypeMap, null2ZeroOnAssignment = false, isNumberField }: RunOption = {}) {
     this.scope.null2Zero = null2Zero;
     funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
     this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
+    isNumberField && (this.scope.isNumberField = isNumberField);
     const ast = typeof code === 'string' ? this.parser.parse(code, this.options) as Node : code
     hoist(ast as Program, this.scope)
     evaluate(ast, this.scope)

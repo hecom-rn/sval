@@ -3848,7 +3848,26 @@
       return value == null && node.type != 'MemberExpression';
   }
   function isNumberField(node, scope) {
-      return node.type === 'MemberExpression' && scope.isNumberField && scope.isNumberField(node, scope);
+      if (scope.isNumberField) {
+          if (node.type === 'MemberExpression') {
+              var fieldNames = [];
+              convert2FieldNames(node, fieldNames);
+              return scope.isNumberField(fieldNames);
+          }
+          else if (node.type === 'Identifier') {
+              return scope.isNumberField([node.name]);
+          }
+      }
+      return false;
+  }
+  function convert2FieldNames(node, fieldNames) {
+      fieldNames.unshift(node.property.name);
+      if (node.object.type == 'MemberExpression') {
+          convert2FieldNames(node.object, fieldNames);
+      }
+      else {
+          fieldNames.unshift(node.object.name);
+      }
   }
   function FunctionArgType(name, argIndex, scope) {
       var _a, _b;
@@ -4086,7 +4105,26 @@
       return value == null && node.type != 'MemberExpression';
   }
   function isNumberField$1(node, scope) {
-      return node.type === 'MemberExpression' && scope.isNumberField && scope.isNumberField(node, scope);
+      if (scope.isNumberField) {
+          if (node.type === 'MemberExpression') {
+              var fieldNames = [];
+              convert2FieldNames$1(node, fieldNames);
+              return scope.isNumberField(fieldNames);
+          }
+          else if (node.type === 'Identifier') {
+              return scope.isNumberField([node.name]);
+          }
+      }
+      return false;
+  }
+  function convert2FieldNames$1(node, fieldNames) {
+      fieldNames.unshift(node.property.name);
+      if (node.object.type == 'MemberExpression') {
+          convert2FieldNames$1(node.object, fieldNames);
+      }
+      else {
+          fieldNames.unshift(node.object.name);
+      }
   }
   function FunctionArgType$1(name, argIndex, scope) {
       var _a, _b;
@@ -4112,7 +4150,7 @@
           this.options = {};
           this.scope = new Scope(null, true);
           this.exports = {};
-          var _a = options.ecmaVer, ecmaVer = _a === void 0 ? 9 : _a, _b = options.sandBox, sandBox = _b === void 0 ? true : _b, _c = options.operatorHandle, operatorHandle = _c === void 0 ? [] : _c, _d = options.nullSafe, nullSafe = _d === void 0 ? false : _d, funcTypeMap = options.funcTypeMap, isNumberField = options.isNumberField;
+          var _a = options.ecmaVer, ecmaVer = _a === void 0 ? 9 : _a, _b = options.sandBox, sandBox = _b === void 0 ? true : _b, _c = options.operatorHandle, operatorHandle = _c === void 0 ? [] : _c, _d = options.nullSafe, nullSafe = _d === void 0 ? false : _d, funcTypeMap = options.funcTypeMap;
           ecmaVer -= ecmaVer < 2015 ? 0 : 2009;
           if ([3, 5, 6, 7, 8, 9, 10].indexOf(ecmaVer) === -1) {
               throw new Error("unsupported ecmaVer");
@@ -4131,7 +4169,6 @@
           operatorHandle.forEach(function (item) { return _this.scope.addOperator(item.name, item.handle); });
           this.scope.nullSafe = nullSafe;
           this.scope.funcTypeMap = funcTypeMap;
-          isNumberField && (this.scope.isNumberField = isNumberField);
           this.parser = acorn.Parser.extend(customParser);
       }
       Sval.prototype.import = function (nameOrModules, mod) {
@@ -4154,10 +4191,11 @@
           return this.parser.parse(code, this.options);
       };
       Sval.prototype.run = function (code, _a) {
-          var _b = _a === void 0 ? {} : _a, _c = _b.null2Zero, null2Zero = _c === void 0 ? false : _c, funcTypeMap = _b.funcTypeMap, _d = _b.null2ZeroOnAssignment, null2ZeroOnAssignment = _d === void 0 ? false : _d;
+          var _b = _a === void 0 ? {} : _a, _c = _b.null2Zero, null2Zero = _c === void 0 ? false : _c, funcTypeMap = _b.funcTypeMap, _d = _b.null2ZeroOnAssignment, null2ZeroOnAssignment = _d === void 0 ? false : _d, isNumberField = _b.isNumberField;
           this.scope.null2Zero = null2Zero;
           funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
           this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
+          isNumberField && (this.scope.isNumberField = isNumberField);
           var ast = typeof code === 'string' ? this.parser.parse(code, this.options) : code;
           hoist$1(ast, this.scope);
           evaluate(ast, this.scope);

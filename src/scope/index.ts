@@ -46,7 +46,7 @@ export default class Scope {
   public null2ZeroOnAssignment: boolean = false
   public funcTypeMap: FunctionTypeMap;
 
-  public isNumberField: (node: Expression, scope: Scope) => boolean = () => true;
+  public isNumberField: (fieldNames: string[]) => boolean = () => true;
 
   /**
    * Create a simulated scope

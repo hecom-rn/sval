@@ -318,7 +318,25 @@ function isNullType(value: any, node: estree.Expression): boolean {
 }
 
 function isNumberField(node: estree.Expression, scope: Scope): boolean {
-  return node.type === 'MemberExpression' && scope.isNumberField && scope.isNumberField(node, scope);
+  if (scope.isNumberField){
+    if (node.type === 'MemberExpression'){
+      const fieldNames:string[] = [];
+      convert2FieldNames(node, fieldNames);
+      return scope.isNumberField(fieldNames);
+    } else if (node.type === 'Identifier'){
+      return scope.isNumberField([node.name]);
+    }
+  }
+  return false
+}
+
+function convert2FieldNames(node: estree.MemberExpression, fieldNames:string[]) {
+  fieldNames.unshift((node.property as estree.Identifier).name);
+  if (node.object. type == 'MemberExpression') {
+    convert2FieldNames(node.object as estree.MemberExpression, fieldNames);
+  } else {
+    fieldNames.unshift((node.object as estree.Identifier).name);
+  }
 }
 
 export function FunctionArgType(name: string, argIndex: number, scope: Scope): TYPE {

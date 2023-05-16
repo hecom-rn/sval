@@ -120,15 +120,16 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.d).toEqual(null)
   })
 
-  it('^ 改为幂运算符',()=>{
+  it('^ 改为幂运算符', () => {
     const interpreter = new Sval({ nullSafe: true })
-    const bizData: any = { };
+    const bizData: any = {};
     interpreter.import({ bizData });
     interpreter.run(`
       exports.a = bizData.field1 ^ bizData.field2 + 1
     `, { null2Zero: true });
     expect(interpreter.exports.a).toEqual(2);
-    bizData.field1 = 2;bizData.field2 = 2
+    bizData.field1 = 2;
+    bizData.field2 = 2
     interpreter.import({ bizData });
     interpreter.run(`
       exports.a = bizData.field1 ^ bizData.field2 + 1
@@ -140,13 +141,15 @@ describe('testing src/expression.ts', () => {
     expect(interpreter.exports.a).toEqual(6);
   })
 
-  it('区分字符串拼接与数值加法',()=>{
-    const isNumberField = (node:MemberExpression)=>{
-      return ['field1','field2'].some(f=> f === (node.property as Identifier).name);
+  it('区分字符串拼接与数值加法', () => {
+    const isNumberField = (fieldNames: string[]) => {
+      return ['field1', 'field2'].some(f => f === fieldNames[1]);
     }
-    const interpreter = new Sval({ nullSafe: true ,ecmaVer: 6,
-      sandBox: true, isNumberField})
-    const bizData: any = { };
+    const interpreter = new Sval({
+      nullSafe: true, ecmaVer: 6,
+      sandBox: true,
+    })
+    const bizData: any = {};
     interpreter.import({ bizData });
     interpreter.run(`
       exports.a = bizData.field1 + bizData.field2
@@ -154,7 +157,7 @@ describe('testing src/expression.ts', () => {
       exports.c = bizData.field1 + 5
       exports.d = bizData.field1 + "5"
       exports.e = bizData.field1 + null
-    `, { null2Zero: true });
+    `, { null2Zero: true, isNumberField });
     expect(interpreter.exports.a).toEqual(0);
     expect(interpreter.exports.b).toEqual('');
     expect(interpreter.exports.c).toEqual(5);
@@ -542,5 +545,21 @@ describe('testing src/expression.ts', () => {
     }
 
     expect(error).toBeInstanceOf(SyntaxError);
+  })
+  it('isNumberField', () => {
+    const interpreter = new Sval({
+      nullSafe: true,
+    })
+    interpreter.import({ bizData: {}, bizData1: {} })
+    interpreter.run(`bizData.f1 + bizData1.f2.f3.f4.f5`, {
+      isNumberField(fieldNames: string[]) {
+        if (fieldNames[0] === 'bizData') {
+          expect(fieldNames).toStrictEqual(['bizData', 'f1'])
+        } else if (fieldNames[0] === 'bizData1') {
+          expect(fieldNames).toStrictEqual(['bizData1', 'f2', 'f3', 'f4', 'f5'])
+        }
+        return true;
+      }
+    })
   })
 })
