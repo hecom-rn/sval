@@ -53,6 +53,7 @@ class Sval {
 
   private options: Options = {}
   private scope = new Scope(null, true)
+  private astCache: { [code: string]: Node } = {}
 
   exports: { [name: string]: any } = {}
 
@@ -109,12 +110,24 @@ class Sval {
     return this.parser.parse(code, this.options)
   }
 
-  run(code: string | Node, { null2Zero = false, funcTypeMap, null2ZeroOnAssignment = false, isNumberField }: RunOption = {}) {
+  private getAst(code: string): Node {
+    if (!this.astCache[code]) {
+      this.astCache[code] = this.parser.parse(code, this.options) as Node
+    }
+    return this.astCache[code];
+  }
+
+  run(code: string | Node, {
+    null2Zero = false,
+    funcTypeMap,
+    null2ZeroOnAssignment = false,
+    isNumberField
+  }: RunOption = {}) {
     this.scope.null2Zero = null2Zero;
     funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
     this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
     isNumberField && (this.scope.isNumberField = isNumberField);
-    const ast = typeof code === 'string' ? this.parser.parse(code, this.options) as Node : code
+    const ast = typeof code === 'string' ? this.getAst(code) : code
     hoist(ast as Program, this.scope)
     evaluate(ast, this.scope)
   }

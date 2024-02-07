@@ -2,7 +2,6 @@ import { NOINIT, DEADZONE } from '../share/const'
 import { Variable, Var, Prop } from './variable'
 import { create, define } from '../share/util'
 import { FunctionTypeMap } from "../index";
-import { Expression } from "estree";
 
 export interface OperatorHandle {
   (...args: any[]): any

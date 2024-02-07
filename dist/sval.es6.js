@@ -3224,6 +3224,7 @@
       constructor(options = {}) {
           this.options = {};
           this.scope = new Scope(null, true);
+          this.astCache = {};
           this.exports = {};
           let { ecmaVer = 9, sandBox = true, operatorHandle = [], nullSafe = false, funcTypeMap } = options;
           ecmaVer -= ecmaVer < 2015 ? 0 : 2009;
@@ -3264,12 +3265,18 @@
           }
           return this.parser.parse(code, this.options);
       }
+      getAst(code) {
+          if (!this.astCache[code]) {
+              this.astCache[code] = this.parser.parse(code, this.options);
+          }
+          return this.astCache[code];
+      }
       run(code, { null2Zero = false, funcTypeMap, null2ZeroOnAssignment = false, isNumberField } = {}) {
           this.scope.null2Zero = null2Zero;
           funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
           this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
           isNumberField && (this.scope.isNumberField = isNumberField);
-          const ast = typeof code === 'string' ? this.parser.parse(code, this.options) : code;
+          const ast = typeof code === 'string' ? this.getAst(code) : code;
           hoist$1(ast, this.scope);
           evaluate(ast, this.scope);
       }

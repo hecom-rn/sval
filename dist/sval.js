@@ -4149,6 +4149,7 @@
           if (options === void 0) { options = {}; }
           this.options = {};
           this.scope = new Scope(null, true);
+          this.astCache = {};
           this.exports = {};
           var _a = options.ecmaVer, ecmaVer = _a === void 0 ? 9 : _a, _b = options.sandBox, sandBox = _b === void 0 ? true : _b, _c = options.operatorHandle, operatorHandle = _c === void 0 ? [] : _c, _d = options.nullSafe, nullSafe = _d === void 0 ? false : _d, funcTypeMap = options.funcTypeMap;
           ecmaVer -= ecmaVer < 2015 ? 0 : 2009;
@@ -4190,13 +4191,19 @@
           }
           return this.parser.parse(code, this.options);
       };
+      Sval.prototype.getAst = function (code) {
+          if (!this.astCache[code]) {
+              this.astCache[code] = this.parser.parse(code, this.options);
+          }
+          return this.astCache[code];
+      };
       Sval.prototype.run = function (code, _a) {
           var _b = _a === void 0 ? {} : _a, _c = _b.null2Zero, null2Zero = _c === void 0 ? false : _c, funcTypeMap = _b.funcTypeMap, _d = _b.null2ZeroOnAssignment, null2ZeroOnAssignment = _d === void 0 ? false : _d, isNumberField = _b.isNumberField;
           this.scope.null2Zero = null2Zero;
           funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
           this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
           isNumberField && (this.scope.isNumberField = isNumberField);
-          var ast = typeof code === 'string' ? this.parser.parse(code, this.options) : code;
+          var ast = typeof code === 'string' ? this.getAst(code) : code;
           hoist$1(ast, this.scope);
           evaluate(ast, this.scope);
       };
