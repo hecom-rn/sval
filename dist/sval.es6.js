@@ -3271,10 +3271,11 @@
           }
           return this.astCache[code];
       }
-      run(code, { null2Zero = false, funcTypeMap, null2ZeroOnAssignment = false, isNumberField } = {}) {
+      run(code, { null2Zero = false, funcTypeMap, null2ZeroOnAssignment = false, isNumberField, calculator } = {}) {
           this.scope.null2Zero = null2Zero;
-          funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
           this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
+          this.scope.calculator = calculator;
+          funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
           isNumberField && (this.scope.isNumberField = isNumberField);
           const ast = typeof code === 'string' ? this.getAst(code) : code;
           hoist$1(ast, this.scope);

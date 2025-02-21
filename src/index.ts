@@ -40,6 +40,7 @@ export interface RunOption {
   funcTypeMap?: FunctionTypeMap;
   isNumberField?: (fieldNames: string[]) => boolean
   null2ZeroOnAssignment?: boolean;
+  calculator?: any;
 }
 
 function customParser(BaseParser: typeof Parser): typeof Parser {
@@ -121,11 +122,13 @@ class Sval {
     null2Zero = false,
     funcTypeMap,
     null2ZeroOnAssignment = false,
-    isNumberField
+    isNumberField,
+    calculator
   }: RunOption = {}) {
     this.scope.null2Zero = null2Zero;
-    funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
     this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
+    this.scope.calculator = calculator;
+    funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
     isNumberField && (this.scope.isNumberField = isNumberField);
     const ast = typeof code === 'string' ? this.getAst(code) : code
     hoist(ast as Program, this.scope)

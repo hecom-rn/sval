@@ -4198,10 +4198,11 @@
           return this.astCache[code];
       };
       Sval.prototype.run = function (code, _a) {
-          var _b = _a === void 0 ? {} : _a, _c = _b.null2Zero, null2Zero = _c === void 0 ? false : _c, funcTypeMap = _b.funcTypeMap, _d = _b.null2ZeroOnAssignment, null2ZeroOnAssignment = _d === void 0 ? false : _d, isNumberField = _b.isNumberField;
+          var _b = _a === void 0 ? {} : _a, _c = _b.null2Zero, null2Zero = _c === void 0 ? false : _c, funcTypeMap = _b.funcTypeMap, _d = _b.null2ZeroOnAssignment, null2ZeroOnAssignment = _d === void 0 ? false : _d, isNumberField = _b.isNumberField, calculator = _b.calculator;
           this.scope.null2Zero = null2Zero;
-          funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
           this.scope.null2ZeroOnAssignment = null2ZeroOnAssignment;
+          this.scope.calculator = calculator;
+          funcTypeMap && (this.scope.funcTypeMap = funcTypeMap);
           isNumberField && (this.scope.isNumberField = isNumberField);
           var ast = typeof code === 'string' ? this.getAst(code) : code;
           hoist$1(ast, this.scope);

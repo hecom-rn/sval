@@ -47,6 +47,8 @@ export default class Scope {
 
   public isNumberField: (fieldNames: string[]) => boolean = () => true;
 
+  public calculator: any;
+
   /**
    * Create a simulated scope
    * @param parent the parent scope along the scope chain (default: null)
